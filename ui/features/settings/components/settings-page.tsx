@@ -53,61 +53,65 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="px-6 py-6 max-w-2xl">
-        <Section title="Steam install path" description="Override the auto-detected folder">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Input
-              value={steamPath}
-              placeholder="(auto-detect)"
-              onChange={(e) => setSteamPath(e.target.value)}
-              className="flex-1 min-w-0"
-            />
-            <Button variant="outline" onClick={pickPath} className="sm:w-auto">
-              Browse...
-            </Button>
+    <div className="h-full flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="mx-auto max-w-2xl px-6 py-6">
+          <Section title="Steam install path" description="Override the auto-detected folder">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                value={steamPath}
+                placeholder="(auto-detect)"
+                onChange={(e) => setSteamPath(e.target.value)}
+                className="flex-1 min-w-0"
+              />
+              <Button variant="outline" onClick={pickPath} className="sm:w-auto">
+                Browse...
+              </Button>
+            </div>
+          </Section>
+
+          <Section
+            title="Backup retention"
+            description="Auto-delete old auto-backups when more than this number exist per (account, game). Manual backups are never auto-deleted."
+          >
+            <div className="flex items-center gap-2">
+              <Label htmlFor="retention" className="text-sm">Keep last</Label>
+              <Input
+                id="retention"
+                type="number"
+                min={1}
+                value={retention}
+                onChange={(e) => setRetention(Number(e.target.value) || 1)}
+                className="w-20"
+              />
+              <span className="text-sm text-muted-foreground">most recent</span>
+            </div>
+          </Section>
+
+          <Section title="Appearance" description="Theme">
+            <Select value={theme} onValueChange={(v) => setTheme(v as "light" | "dark" | "system")}>
+              <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="system">System</SelectItem>
+                <SelectItem value="light">Light</SelectItem>
+                <SelectItem value="dark">Dark</SelectItem>
+              </SelectContent>
+            </Select>
+          </Section>
+
+          <div className="flex justify-end border-t pt-4 mt-2">
+            <Button onClick={save} disabled={update.isPending}>Save</Button>
           </div>
-        </Section>
-
-        <Section
-          title="Backup retention"
-          description="Auto-delete old auto-backups when more than this number exist per (account, game). Manual backups are never auto-deleted."
-        >
-          <div className="flex items-center gap-2">
-            <Label htmlFor="retention" className="text-sm">Keep last</Label>
-            <Input
-              id="retention"
-              type="number"
-              min={1}
-              value={retention}
-              onChange={(e) => setRetention(Number(e.target.value) || 1)}
-              className="w-20"
-            />
-            <span className="text-sm text-muted-foreground">most recent</span>
-          </div>
-        </Section>
-
-        <Section title="Appearance" description="Theme">
-          <Select value={theme} onValueChange={(v) => setTheme(v as "light" | "dark" | "system")}>
-            <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="system">System</SelectItem>
-              <SelectItem value="light">Light</SelectItem>
-              <SelectItem value="dark">Dark</SelectItem>
-            </SelectContent>
-          </Select>
-        </Section>
-
-        <div className="flex justify-end">
-          <Button onClick={save} disabled={update.isPending}>Save</Button>
         </div>
+      </div>
 
-        {version && (
-          <p className="text-xs text-muted-foreground text-center pt-6">
+      {version && (
+        <div className="border-t py-2.5">
+          <p className="text-xs text-muted-foreground text-center">
             Carry v{version}
           </p>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
