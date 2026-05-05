@@ -25,6 +25,14 @@ pub fn run() {
             bridge::commands::list_games,
             bridge::commands::ensure_avatar,
             bridge::commands::open_path_in_explorer,
+            bridge::commands::list_backups,
+            bridge::commands::create_manual_backup,
+            bridge::commands::delete_backup,
+            bridge::commands::run_transfer_cmd,
+            bridge::commands::restore_backup,
+            bridge::commands::get_settings,
+            bridge::commands::update_settings,
+            bridge::commands::pick_steam_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

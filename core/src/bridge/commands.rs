@@ -1,8 +1,12 @@
+use crate::archive::list::BackupRecord;
+use crate::archive::manifest::BackupReason;
 use crate::bridge::state::AppState;
 use crate::error::{AppError, AppResult};
+use crate::settings::Settings;
 use crate::steam::accounts::Account;
 use crate::steam::games::GameRef;
 use crate::steam::metadata::GameMetadata;
+use crate::sync::transfer::{run_transfer, TransferOptions, TransferOutcome, TransferPair};
 use serde::Serialize;
 use std::path::PathBuf;
 use tauri::State;
@@ -90,4 +94,125 @@ pub async fn open_path_in_explorer(path: PathBuf) -> AppResult<()> {
         let _ = path;
         Ok(())
     }
+}
+
+#[tauri::command]
+pub async fn list_backups(state: State<'_, AppState>) -> AppResult<Vec<BackupRecord>> {
+    let backups_root = state.backups_root();
+    crate::archive::list::list_all(&backups_root)
+}
+
+#[tauri::command]
+pub async fn create_manual_backup(
+    state: State<'_, AppState>,
+    steam_id_64: String,
+    steam_id_32: u32,
+    persona_name: String,
+    app_id: u32,
+    game_name: String,
+) -> AppResult<PathBuf> {
+    let install = state
+        .steam
+        .lock()
+        .unwrap()
+        .clone()
+        .ok_or(AppError::SteamNotFound)?;
+    let source = install
+        .userdata_dir()
+        .join(steam_id_32.to_string())
+        .join(app_id.to_string());
+    let backups_root = state.backups_root();
+    let res = crate::archive::create::create(crate::archive::create::CreateRequest {
+        source_dir: &source,
+        steam_id_64: &steam_id_64,
+        persona_name: &persona_name,
+        app_id,
+        game_name: &game_name,
+        reason: BackupReason::Manual,
+        backup_root: &backups_root,
+    })?;
+    Ok(res.archive_path)
+}
+
+#[tauri::command]
+pub async fn delete_backup(archive_path: PathBuf) -> AppResult<()> {
+    std::fs::remove_file(archive_path)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn run_transfer_cmd(
+    state: State<'_, AppState>,
+    pairs: Vec<TransferPair>,
+) -> AppResult<Vec<TransferOutcome>> {
+    let install = state
+        .steam
+        .lock()
+        .unwrap()
+        .clone()
+        .ok_or(AppError::SteamNotFound)?;
+    let backups_root = state.backups_root();
+    let retention = state.settings.lock().unwrap().backup_retention_per_pair;
+    run_transfer(
+        &install,
+        &pairs,
+        TransferOptions {
+            backup_root: &backups_root,
+            retention_per_pair: retention,
+        },
+    )
+}
+
+#[tauri::command]
+pub async fn restore_backup(
+    state: State<'_, AppState>,
+    archive_path: PathBuf,
+    target_steam_id_32: u32,
+) -> AppResult<PathBuf> {
+    let install = state
+        .steam
+        .lock()
+        .unwrap()
+        .clone()
+        .ok_or(AppError::SteamNotFound)?;
+    let manifest = crate::archive::list::read_manifest(&archive_path)?;
+    let size = std::fs::metadata(&archive_path).map(|m| m.len()).unwrap_or(0);
+    let record = BackupRecord {
+        archive_path,
+        size_bytes: size,
+        manifest,
+    };
+    let backup_root = state.backups_root();
+    crate::archive::restore::restore(&install, &record, target_steam_id_32, &backup_root)
+}
+
+#[tauri::command]
+pub async fn get_settings(state: State<'_, AppState>) -> AppResult<Settings> {
+    Ok(state.settings.lock().unwrap().clone())
+}
+
+#[tauri::command]
+pub async fn update_settings(state: State<'_, AppState>, settings: Settings) -> AppResult<()> {
+    let path = state.settings_path();
+    crate::settings::save(&path, &settings)?;
+    *state.settings.lock().unwrap() = settings.clone();
+    if let Some(p) = settings.steam_path_override.as_ref() {
+        if let Ok(install) = crate::steam::install::validate_steam_root(p) {
+            *state.steam.lock().unwrap() = Some(install);
+        }
+    } else if let Ok(install) = crate::steam::install::detect() {
+        *state.steam.lock().unwrap() = Some(install);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn pick_steam_path(handle: tauri::AppHandle) -> AppResult<Option<PathBuf>> {
+    use tauri_plugin_dialog::DialogExt;
+    let (tx, rx) = std::sync::mpsc::channel();
+    handle.dialog().file().pick_folder(move |p| {
+        let _ = tx.send(p);
+    });
+    let chosen = rx.recv().ok().flatten();
+    Ok(chosen.and_then(|p| p.into_path().ok()))
 }
