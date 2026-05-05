@@ -55,6 +55,7 @@ pub async fn list_games(
                 app_id: g.app_id,
                 name: format!("App {}", g.app_id),
                 header_image_url: crate::steam::metadata::header_image_url(g.app_id),
+                is_known: false,
             });
             GameView {
                 game: g,

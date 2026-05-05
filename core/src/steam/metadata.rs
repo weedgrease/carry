@@ -9,7 +9,11 @@ pub struct GameMetadata {
     pub app_id: u32,
     pub name: String,
     pub header_image_url: String,
+    #[serde(default = "default_true")]
+    pub is_known: bool,
 }
+
+fn default_true() -> bool { true }
 
 pub fn header_image_url(app_id: u32) -> String {
     format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/header.jpg")
@@ -63,6 +67,7 @@ pub async fn fetch_one(client: &reqwest::Client, app_id: u32) -> AppResult<Optio
                 app_id,
                 name: d.name.clone(),
                 header_image_url: header_image_url(app_id),
+                is_known: true,
             })
         } else {
             None
@@ -93,6 +98,7 @@ pub async fn ensure_cached(
                         app_id: id,
                         name: format!("App {id}"),
                         header_image_url: header_image_url(id),
+                        is_known: false,
                     },
                 );
             }
@@ -128,10 +134,35 @@ mod tests {
                 app_id: 570,
                 name: "Dota 2".into(),
                 header_image_url: header_image_url(570),
+                is_known: true,
             },
         );
         save_cache(&path, &cache).unwrap();
         let loaded = load_cache(&path).unwrap();
         assert_eq!(loaded.get(&570).unwrap().name, "Dota 2");
+    }
+
+    #[test]
+    fn is_known_false_round_trips() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("games.json");
+        let mut cache = HashMap::new();
+        cache.insert(7, GameMetadata {
+            app_id: 7, name: "App 7".into(), header_image_url: header_image_url(7),
+            is_known: false,
+        });
+        save_cache(&path, &cache).unwrap();
+        let loaded = load_cache(&path).unwrap();
+        assert!(!loaded.get(&7).unwrap().is_known);
+    }
+
+    #[test]
+    fn legacy_cache_without_is_known_defaults_to_true() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("games.json");
+        // Write a legacy entry that doesn't include is_known.
+        std::fs::write(&path, r#"{"570":{"app_id":570,"name":"Dota 2","header_image_url":"https://example/570.jpg"}}"#).unwrap();
+        let loaded = load_cache(&path).unwrap();
+        assert!(loaded.get(&570).unwrap().is_known);
     }
 }
