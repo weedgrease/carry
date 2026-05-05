@@ -1,0 +1,19 @@
+"users"
+{
+	"76561198000000001"
+	{
+		"AccountName"		"alice_login"
+		"PersonaName"		"Alice"
+		"RememberPassword"		"1"
+		"MostRecent"		"1"
+		"Timestamp"		"1714521600"
+	}
+	"76561198000000002"
+	{
+		"AccountName"		"bob_login"
+		"PersonaName"		"Bob"
+		"RememberPassword"		"1"
+		"MostRecent"		"0"
+		"Timestamp"		"1714435200"
+	}
+}
