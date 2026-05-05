@@ -4,6 +4,13 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 use std::path::PathBuf;
 
+/// App IDs that exist as `userdata/<id32>/<appId>/` folders but aren't real
+/// games — typically Steam's own internal apps. Filtered out so they don't
+/// appear in the games list. Add new entries here if more show up.
+const STEAM_INTERNAL_APP_IDS: &[u32] = &[
+    7, // Steam client itself
+];
+
 #[derive(Debug, Clone, Serialize)]
 pub struct GameRef {
     pub app_id: u32,
@@ -22,6 +29,7 @@ pub fn list_for_account(install: &SteamInstall, steam_id_32: u32) -> AppResult<V
         let name = entry.file_name();
         let s = match name.to_str() { Some(s) => s, None => continue };
         let app_id: u32 = match s.parse() { Ok(v) if v > 0 => v, _ => continue };
+        if STEAM_INTERNAL_APP_IDS.contains(&app_id) { continue; }
         let path = entry.path();
         let (size, modified) = dir_stats(&path)?;
         games.push(GameRef {
@@ -72,5 +80,22 @@ mod tests {
         assert!(ids.contains(&570));
         assert!(ids.contains(&730));
         assert!(!ids.contains(&0));
+    }
+
+    #[test]
+    fn filters_steam_internal_app_ids() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir_all(root.join("config")).unwrap();
+        // Real game (Dota 2)
+        std::fs::create_dir_all(root.join("userdata/12345/570")).unwrap();
+        // Steam internal: app id 7 (Steam client itself)
+        std::fs::create_dir_all(root.join("userdata/12345/7/local")).unwrap();
+        std::fs::write(root.join("userdata/12345/7/local/foo.txt"), "x").unwrap();
+        let install = validate_steam_root(root).unwrap();
+        let games = list_for_account(&install, 12345).unwrap();
+        let ids: Vec<u32> = games.iter().map(|g| g.app_id).collect();
+        assert!(ids.contains(&570));
+        assert!(!ids.contains(&7), "app ID 7 (Steam client) should be filtered out");
     }
 }

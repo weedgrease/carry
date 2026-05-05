@@ -7,8 +7,20 @@ pub fn local_avatar(install: &SteamInstall, steam_id_64: &str) -> Option<PathBuf
     if p.exists() { Some(p) } else { None }
 }
 
-#[derive(Debug)]
-struct ProfileXml { avatar_full: Option<String> }
+#[derive(Debug, Default)]
+struct ProfileXml {
+    avatar_full: Option<String>,
+    avatar_medium: Option<String>,
+    avatar_icon: Option<String>,
+}
+
+impl ProfileXml {
+    fn best(&self) -> Option<&str> {
+        self.avatar_full.as_deref()
+            .or(self.avatar_medium.as_deref())
+            .or(self.avatar_icon.as_deref())
+    }
+}
 
 fn parse_profile_xml(xml: &str) -> ProfileXml {
     use quick_xml::events::Event;
@@ -16,25 +28,50 @@ fn parse_profile_xml(xml: &str) -> ProfileXml {
     let mut reader = Reader::from_str(xml);
     reader.config_mut().trim_text(true);
     let mut buf = Vec::new();
-    let mut in_avatar_full = false;
-    let mut avatar_full = None;
+    let mut current: Option<&'static str> = None;
+    let mut out = ProfileXml::default();
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(Event::Start(e)) if e.name().as_ref() == b"avatarFull" => in_avatar_full = true,
-            Ok(Event::CData(t)) if in_avatar_full => {
-                avatar_full = Some(String::from_utf8_lossy(t.as_ref()).to_string());
-                in_avatar_full = false;
+            Ok(Event::Start(e)) => {
+                current = match e.name().as_ref() {
+                    b"avatarFull" => Some("full"),
+                    b"avatarMedium" => Some("medium"),
+                    b"avatarIcon" => Some("icon"),
+                    _ => None,
+                };
             }
-            Ok(Event::Text(t)) if in_avatar_full => {
-                avatar_full = Some(t.unescape().unwrap_or_default().to_string());
-                in_avatar_full = false;
+            Ok(Event::CData(t)) => {
+                if let Some(tag) = current {
+                    let s = String::from_utf8_lossy(t.as_ref()).to_string();
+                    match tag {
+                        "full" => out.avatar_full = Some(s),
+                        "medium" => out.avatar_medium = Some(s),
+                        "icon" => out.avatar_icon = Some(s),
+                        _ => {}
+                    }
+                    current = None;
+                }
+            }
+            Ok(Event::Text(t)) => {
+                if let Some(tag) = current {
+                    let s = t.unescape().unwrap_or_default().to_string();
+                    if !s.is_empty() {
+                        match tag {
+                            "full" => out.avatar_full = Some(s),
+                            "medium" => out.avatar_medium = Some(s),
+                            "icon" => out.avatar_icon = Some(s),
+                            _ => {}
+                        }
+                    }
+                    current = None;
+                }
             }
             Ok(Event::Eof) | Err(_) => break,
             _ => {}
         }
         buf.clear();
     }
-    ProfileXml { avatar_full }
+    out
 }
 
 pub async fn fetch_remote_avatar(
@@ -49,7 +86,7 @@ pub async fn fetch_remote_avatar(
     let xml_url = format!("https://steamcommunity.com/profiles/{steam_id_64}?xml=1");
     let xml = client.get(xml_url).send().await?.error_for_status()?.text().await?;
     let parsed = parse_profile_xml(&xml);
-    let url = parsed.avatar_full.ok_or_else(|| {
+    let url = parsed.best().ok_or_else(|| {
         AppError::BackupFailed(format!("avatar URL missing for {steam_id_64}"))
     })?;
     let bytes = client.get(url).send().await?.error_for_status()?.bytes().await?;
@@ -95,6 +132,28 @@ mod tests {
   <avatarFull><![CDATA[https://avatars.steamstatic.com/abc_full.jpg]]></avatarFull>
 </profile>"#;
         let parsed = parse_profile_xml(xml);
-        assert_eq!(parsed.avatar_full.as_deref(), Some("https://avatars.steamstatic.com/abc_full.jpg"));
+        assert_eq!(parsed.best(), Some("https://avatars.steamstatic.com/abc_full.jpg"));
+    }
+
+    #[test]
+    fn falls_back_to_medium_when_full_missing() {
+        let xml = r#"<?xml version="1.0"?>
+<profile>
+  <avatarMedium><![CDATA[https://avatars.steamstatic.com/abc_medium.jpg]]></avatarMedium>
+  <avatarIcon><![CDATA[https://avatars.steamstatic.com/abc_icon.jpg]]></avatarIcon>
+</profile>"#;
+        let parsed = parse_profile_xml(xml);
+        assert!(parsed.avatar_full.is_none());
+        assert_eq!(parsed.best(), Some("https://avatars.steamstatic.com/abc_medium.jpg"));
+    }
+
+    #[test]
+    fn falls_back_to_icon_when_full_and_medium_missing() {
+        let xml = r#"<?xml version="1.0"?>
+<profile>
+  <avatarIcon><![CDATA[https://avatars.steamstatic.com/abc_icon.jpg]]></avatarIcon>
+</profile>"#;
+        let parsed = parse_profile_xml(xml);
+        assert_eq!(parsed.best(), Some("https://avatars.steamstatic.com/abc_icon.jpg"));
     }
 }
