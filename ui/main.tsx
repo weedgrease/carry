@@ -1,13 +1,18 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./app/App";
 import { ThemeProvider } from "./app/providers/theme-provider";
 import "./app/globals.css";
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+});
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
-  </React.StrictMode>,
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider><App /></ThemeProvider>
+    </QueryClientProvider>
+  </React.StrictMode>
 );
