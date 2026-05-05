@@ -46,14 +46,14 @@ if ! command -v clang-cl >/dev/null 2>&1 || ! command -v lld-link >/dev/null 2>&
 fi
 
 # 4. Build via the Tauri CLI with cargo-xwin as the cargo runner. We skip the
-#    NSIS/MSI bundlers (--bundles none) since those need Windows-side tooling.
+#    NSIS/MSI bundlers (--no-bundle) since those need Windows-side tooling.
 #    The Tauri CLI handles `pnpm build` (beforeBuildCommand), the
 #    generate_context!() asset embedding, and the release-mode flags so the
 #    resulting .exe loads embedded frontend assets instead of falling back to
 #    devUrl. (Bare `cargo xwin build` skips that wiring and produces an .exe
 #    that tries to load http://localhost:1420 at startup.)
-echo ">>> pnpm tauri build --runner cargo-xwin --target x86_64-pc-windows-msvc --bundles none"
-pnpm tauri build --runner cargo-xwin --target x86_64-pc-windows-msvc --bundles none
+echo ">>> pnpm tauri build --runner cargo-xwin --target x86_64-pc-windows-msvc --no-bundle"
+pnpm tauri build --runner cargo-xwin --target x86_64-pc-windows-msvc --no-bundle
 
 EXE="core/target/x86_64-pc-windows-msvc/release/carry.exe"
 if [ ! -f "$EXE" ]; then
