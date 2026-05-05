@@ -2,6 +2,7 @@ pub mod archive;
 pub mod error;
 pub mod settings;
 pub mod steam;
+pub mod sync;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
