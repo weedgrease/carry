@@ -13,6 +13,7 @@ pub struct Account {
     pub steam_id_32: u32,
     pub account_name: String,
     pub persona_name: String,
+    pub display_name: String,
     pub avatar_path: Option<PathBuf>,
     pub last_login: Option<DateTime<Utc>>,
     pub has_userdata: bool,
@@ -31,11 +32,19 @@ pub fn discover(install: &SteamInstall) -> AppResult<Vec<Account>> {
         let userdata_dir = install.userdata_dir().join(id32.to_string());
         let has_userdata = userdata_dir.is_dir();
         let avatar = install.avatar_cache_dir().join(format!("{}.png", e.steam_id_64));
+        let display_name = if !e.persona_name.is_empty() {
+            e.persona_name.clone()
+        } else if !e.account_name.is_empty() {
+            e.account_name.clone()
+        } else {
+            format!("Steam ID {}", e.steam_id_64)
+        };
         accounts.push(Account {
             steam_id_64: e.steam_id_64,
             steam_id_32: id32,
             account_name: e.account_name,
             persona_name: e.persona_name,
+            display_name,
             avatar_path: if avatar.exists() { Some(avatar) } else { None },
             last_login: e.timestamp,
             has_userdata,
@@ -95,5 +104,43 @@ mod tests {
         assert!(alice.has_userdata);
         let bob = accounts.iter().find(|a| a.persona_name == "Bob").unwrap();
         assert!(!bob.has_userdata);
+    }
+
+    #[test]
+    fn display_name_falls_back_through_persona_account_steam_id() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir_all(root.join("config")).unwrap();
+        std::fs::create_dir_all(root.join("userdata/100")).unwrap();
+        std::fs::create_dir_all(root.join("userdata/200")).unwrap();
+        std::fs::create_dir_all(root.join("userdata/300")).unwrap();
+        let vdf = r#"
+"users"
+{
+	"76561197960265828"
+	{
+		"AccountName" "alice"
+		"PersonaName" "Alice"
+	}
+	"76561197960265928"
+	{
+		"AccountName" "bob_login"
+		"PersonaName" ""
+	}
+	"76561197960266028"
+	{
+		"AccountName" ""
+		"PersonaName" ""
+	}
+}
+"#;
+        write(&root.join("config/loginusers.vdf"), vdf);
+        let install = validate_steam_root(root).unwrap();
+        let accounts = discover(&install).unwrap();
+        let by_id: std::collections::HashMap<_, _> = accounts.iter()
+            .map(|a| (a.steam_id_64.as_str(), a)).collect();
+        assert_eq!(by_id["76561197960265828"].display_name, "Alice");
+        assert_eq!(by_id["76561197960265928"].display_name, "bob_login");
+        assert_eq!(by_id["76561197960266028"].display_name, "Steam ID 76561197960266028");
     }
 }
