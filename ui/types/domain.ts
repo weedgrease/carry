@@ -62,3 +62,10 @@ export type Settings = {
 };
 
 export type AppError = { code: string; message: string };
+
+export type UpdateInfo = {
+  available: boolean;
+  version: string | null;
+  current_version: string;
+  notes: string | null;
+};

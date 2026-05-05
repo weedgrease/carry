@@ -10,6 +10,7 @@ use crate::sync::transfer::{run_transfer, TransferOptions, TransferOutcome, Tran
 use serde::Serialize;
 use std::path::PathBuf;
 use tauri::State;
+use tauri_plugin_updater::UpdaterExt;
 
 #[tauri::command]
 pub async fn list_accounts(state: State<'_, AppState>) -> AppResult<Vec<Account>> {
@@ -215,4 +216,54 @@ pub async fn pick_steam_path(handle: tauri::AppHandle) -> AppResult<Option<PathB
     });
     let chosen = rx.recv().ok().flatten();
     Ok(chosen.and_then(|p| p.into_path().ok()))
+}
+
+#[derive(Serialize)]
+pub struct UpdateInfo {
+    pub available: bool,
+    pub version: Option<String>,
+    pub current_version: String,
+    pub notes: Option<String>,
+}
+
+#[tauri::command]
+pub async fn check_for_update(handle: tauri::AppHandle) -> AppResult<UpdateInfo> {
+    let current_version = handle.package_info().version.to_string();
+    let updater = handle
+        .updater()
+        .map_err(|e| AppError::BackupFailed(format!("updater init: {e}")))?;
+    match updater.check().await {
+        Ok(Some(update)) => Ok(UpdateInfo {
+            available: true,
+            version: Some(update.version.clone()),
+            current_version,
+            notes: update.body.clone(),
+        }),
+        Ok(None) => Ok(UpdateInfo {
+            available: false,
+            version: None,
+            current_version,
+            notes: None,
+        }),
+        Err(e) => Err(AppError::BackupFailed(format!("update check: {e}"))),
+    }
+}
+
+#[tauri::command]
+pub async fn install_update(handle: tauri::AppHandle) -> AppResult<()> {
+    let updater = handle
+        .updater()
+        .map_err(|e| AppError::BackupFailed(format!("updater init: {e}")))?;
+    if let Some(update) = updater
+        .check()
+        .await
+        .map_err(|e| AppError::BackupFailed(format!("update check: {e}")))?
+    {
+        update
+            .download_and_install(|_, _| {}, || {})
+            .await
+            .map_err(|e| AppError::BackupFailed(format!("install: {e}")))?;
+        handle.restart();
+    }
+    Ok(())
 }

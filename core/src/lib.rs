@@ -33,6 +33,8 @@ pub fn run() {
             bridge::commands::get_settings,
             bridge::commands::update_settings,
             bridge::commands::pick_steam_path,
+            bridge::commands::check_for_update,
+            bridge::commands::install_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

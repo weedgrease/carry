@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   Account, GameView, BackupRecord, TransferPair, TransferOutcome,
-  Settings, AppError,
+  Settings, AppError, UpdateInfo,
 } from "@/types/domain";
 
 function unwrap<T>(p: Promise<T>): Promise<T> {
@@ -41,4 +41,6 @@ export const api = {
   updateSettings: (settings: Settings) =>
     unwrap(invoke<void>("update_settings", { settings })),
   pickSteamPath: () => unwrap(invoke<string | null>("pick_steam_path")),
+  checkForUpdate: () => unwrap(invoke<UpdateInfo>("check_for_update")),
+  installUpdate: () => unwrap(invoke<void>("install_update")),
 };
