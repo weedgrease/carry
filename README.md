@@ -34,16 +34,23 @@ cd core && cargo test  # Rust unit tests
 
 ## Release process
 
-1. Bump version in `package.json` and `core/tauri.conf.json` (`version` field).
-2. Replace the placeholders in `core/tauri.conf.json` `plugins.updater`:
-   - `REPLACE_OWNER` → your GitHub username/org
-   - `REPLACE_WITH_BASE64_PUBLIC_KEY` → output of `pnpm tauri signer generate`
-3. Tag and push:
+Before the first release, generate the Tauri update signing key:
+
+```bash
+pnpm tauri signer generate -w ~/.tauri/carry.key
+```
+
+Paste the printed **public key** into `core/tauri.conf.json` at `plugins.updater.pubkey` (currently `REPLACE_WITH_BASE64_PUBLIC_KEY`). Save the **private key** to GitHub Actions secrets as `TAURI_SIGNING_PRIVATE_KEY` and the password as `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+
+To cut a release:
+
+1. Bump `version` in `package.json` and `core/tauri.conf.json`.
+2. Tag and push:
    ```bash
    git tag v0.1.0
    git push --tags
    ```
-4. GitHub Actions builds, signs, and drafts a release. Edit and publish.
+3. GitHub Actions builds, signs, and drafts a release at <https://github.com/weedgrease/carry/releases>. Edit and publish.
 
 ## Required secrets
 
@@ -58,4 +65,6 @@ v1 ships unsigned. Windows SmartScreen will warn the user on first run. Click "M
 
 ## Status
 
-See `docs/superpowers/specs/2026-05-05-steam-config-transfer-design.md` for the full design and v1 scope (and explicit non-goals).
+All 35 implementation tasks are complete on `feat/initial-implementation`. The Rust unit suite (25 tests) is green; `pnpm build` is clean. Real Steam end-to-end testing must happen on Windows before tagging v0.1.0.
+
+See `docs/superpowers/specs/2026-05-05-steam-config-transfer-design.md` for the full design and v1 scope (and explicit non-goals). For an at-a-glance project overview optimized for AI assistants, see `CLAUDE.md`.
