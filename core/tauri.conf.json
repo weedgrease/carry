@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "steam-config-transfer",
+  "productName": "Steam Config Transfer",
   "version": "0.1.0",
   "identifier": "com.kevinmurphy.steamconfigtransfer",
   "build": {
@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "steam-config-transfer",
-        "width": 800,
-        "height": 600
+        "title": "Steam Config Transfer",
+        "width": 1100,
+        "height": 750,
+        "minWidth": 900,
+        "minHeight": 600,
+        "theme": null
       }
     ],
     "security": {
