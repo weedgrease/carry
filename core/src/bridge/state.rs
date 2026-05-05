@@ -21,7 +21,7 @@ impl AppState {
             None => detect().ok(),
         };
         let http = reqwest::Client::builder()
-            .user_agent("steam-config-transfer/0.1")
+            .user_agent("carry/0.1")
             .build()?;
         Ok(Self {
             steam: Mutex::new(steam),

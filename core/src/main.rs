@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    steam_config_transfer_lib::run()
+    carry_lib::run()
 }

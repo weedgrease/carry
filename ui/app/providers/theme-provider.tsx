@@ -8,7 +8,7 @@ type ThemeContextValue = {
 };
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
-const STORAGE_KEY = "steam-config-transfer.theme";
+const STORAGE_KEY = "carry.theme";
 
 function resolve(theme: Theme): "light" | "dark" {
   if (theme === "system") {

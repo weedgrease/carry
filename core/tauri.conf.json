@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Steam Config Transfer",
+  "productName": "Carry",
   "version": "0.1.0",
-  "identifier": "com.kevinmurphy.steamconfigtransfer",
+  "identifier": "com.kevinmurphy.carry",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Steam Config Transfer",
+        "title": "Carry",
         "width": 1100,
         "height": 750,
         "minWidth": 900,
@@ -38,7 +38,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/REPLACE_OWNER/steam-config-transfer/releases/latest/download/latest.json"
+        "https://github.com/REPLACE_OWNER/carry/releases/latest/download/latest.json"
       ],
       "pubkey": "REPLACE_WITH_BASE64_PUBLIC_KEY"
     }

@@ -12,7 +12,7 @@ export function Header() {
   return (
     <header className="border-b bg-background">
       <div className="flex h-14 items-center px-6 gap-6">
-        <h1 className="font-semibold tracking-tight">Steam Config Transfer</h1>
+        <h1 className="font-semibold tracking-tight">Carry</h1>
         <nav className="flex items-center gap-1">
           {links.map((l) => (
             <NavLink

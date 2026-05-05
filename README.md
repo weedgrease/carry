@@ -1,6 +1,6 @@
-# Steam Config Transfer
+# Carry
 
-Windows desktop utility for copying Steam game configs between accounts on the same machine, with automatic and manual backups, and signed auto-updates via GitHub Releases.
+A Windows desktop utility that transfers Steam game configs between accounts on the same machine, with automatic and manual backups and signed auto-updates via GitHub Releases.
 
 ## Tech stack
 
