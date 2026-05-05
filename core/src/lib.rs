@@ -20,7 +20,12 @@ pub fn run() {
             app.manage(state);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![bridge::commands::list_accounts,])
+        .invoke_handler(tauri::generate_handler![
+            bridge::commands::list_accounts,
+            bridge::commands::list_games,
+            bridge::commands::ensure_avatar,
+            bridge::commands::open_path_in_explorer,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
