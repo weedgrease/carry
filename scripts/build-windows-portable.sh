@@ -27,28 +27,22 @@ if ! command -v cargo-xwin >/dev/null 2>&1; then
   cargo install cargo-xwin
 fi
 
-# 3. Locate clang-cl + lld-link. Prefer unversioned (e.g. apt's `clang` meta-package
-#    or update-alternatives); otherwise fall back to the highest installed
-#    `clang-cl-N` / `lld-link-N` pair we can find.
-if command -v clang-cl >/dev/null 2>&1 && command -v lld-link >/dev/null 2>&1; then
-  : # unversioned binaries exist on PATH; cargo-xwin's defaults will work
-else
+# 3. Verify clang-cl + lld-link are on PATH (cargo-xwin invokes them by name and
+#    overrides any CC_* env we'd export from this shell, so versioned-binary
+#    fallback doesn't help — they actually have to be installed unversioned).
+if ! command -v clang-cl >/dev/null 2>&1 || ! command -v lld-link >/dev/null 2>&1; then
   CLANG_VER=$(ls /usr/bin/clang-cl-* 2>/dev/null | sed -n 's|.*/clang-cl-||p' | sort -n | tail -1)
-  if [ -z "${CLANG_VER:-}" ]; then
-    echo "ERROR: clang-cl is not installed. Install with:" >&2
-    echo "    sudo apt install clang-21 lld-21" >&2
-    echo "  (or use the highest version your distro has)" >&2
-    exit 1
+  echo "ERROR: clang-cl and lld-link must be on PATH." >&2
+  if [ -n "${CLANG_VER:-}" ]; then
+    echo "Found versioned binaries — wire them up with update-alternatives:" >&2
+    echo "    sudo update-alternatives --install /usr/bin/clang-cl clang-cl /usr/bin/clang-cl-$CLANG_VER 100" >&2
+    echo "    sudo update-alternatives --install /usr/bin/lld-link lld-link /usr/bin/lld-link-$CLANG_VER 100" >&2
+  else
+    echo "Install clang + lld first:" >&2
+    echo "    sudo apt install -y clang-21 lld-21" >&2
+    echo "  Then wire up unversioned names with update-alternatives." >&2
   fi
-  if ! command -v "lld-link-$CLANG_VER" >/dev/null 2>&1; then
-    echo "ERROR: clang-cl-$CLANG_VER is installed but lld-link-$CLANG_VER is not." >&2
-    echo "    sudo apt install lld-$CLANG_VER" >&2
-    exit 1
-  fi
-  echo ">>> Using clang-cl-$CLANG_VER + lld-link-$CLANG_VER"
-  export CC_x86_64_pc_windows_msvc="clang-cl-$CLANG_VER"
-  export CXX_x86_64_pc_windows_msvc="clang-cl-$CLANG_VER"
-  export CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER="lld-link-$CLANG_VER"
+  exit 1
 fi
 
 # 3. Frontend production build (Tauri embeds it at build time)
