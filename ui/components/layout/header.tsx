@@ -1,5 +1,6 @@
 import { NavLink } from "react-router";
 import { ThemeToggle } from "./theme-toggle";
+import { WindowControls } from "./window-controls";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -10,10 +11,16 @@ const links = [
 
 export function Header() {
   return (
-    <header className="border-b bg-background">
-      <div className="flex h-14 items-center px-6 gap-6">
-        <h1 className="font-semibold tracking-tight">Carry</h1>
-        <nav className="flex items-center gap-1">
+    <header
+      data-tauri-drag-region
+      className="h-10 flex items-stretch border-b bg-background select-none"
+    >
+      <div
+        data-tauri-drag-region
+        className="flex items-center gap-4 pl-4 pr-2 flex-1 min-w-0"
+      >
+        <h1 className="font-semibold text-sm tracking-tight whitespace-nowrap">Carry</h1>
+        <nav className="flex items-center gap-0.5">
           {links.map((l) => (
             <NavLink
               key={l.to}
@@ -21,7 +28,7 @@ export function Header() {
               end={l.end}
               className={({ isActive }) =>
                 cn(
-                  "px-3 py-1.5 rounded-md text-sm transition-colors",
+                  "px-2.5 py-1 rounded-md text-xs transition-colors",
                   isActive
                     ? "bg-secondary text-secondary-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -32,8 +39,11 @@ export function Header() {
             </NavLink>
           ))}
         </nav>
-        <div className="ml-auto"><ThemeToggle /></div>
+        <div className="ml-auto pr-1">
+          <ThemeToggle />
+        </div>
       </div>
+      <WindowControls />
     </header>
   );
 }

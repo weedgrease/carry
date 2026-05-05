@@ -65,8 +65,8 @@ export function TransferPage() {
   const ready = !!source && selectedAppIds.size > 0 && targetIds.size > 0;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)]">
-      <div className="flex-1 overflow-y-auto px-6 py-6 pb-20">
+    <div className="h-full flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
         <Section title="Source" description="Pick the account you want to copy from">
           {accounts.length === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -108,7 +108,7 @@ export function TransferPage() {
         )}
       </div>
 
-      <div className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center gap-4">
+      <div className="border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center gap-4">
         <p className="text-sm text-muted-foreground flex-1">{status}</p>
         <Button variant="ghost" onClick={reset} disabled={mutation.isPending}>
           Reset

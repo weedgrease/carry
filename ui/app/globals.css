@@ -80,4 +80,22 @@
 
   * { @apply border-border; }
   body { @apply bg-background text-foreground antialiased; }
+
+  /* Window owns the viewport — pages manage their own scrolling. */
+  html, body, #root { height: 100%; overflow: hidden; }
+
+  /* Thin styled scrollbars (Firefox + Chromium-based webviews). */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 9999px;
+    border: 2px solid var(--background);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+  ::-webkit-scrollbar-corner { background: transparent; }
 }

@@ -53,58 +53,61 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="px-6 py-6 max-w-2xl">
-      <Section title="Steam install path" description="Override the auto-detected folder">
-        <div className="flex gap-2">
-          <Input
-            value={steamPath}
-            placeholder="(auto-detect)"
-            onChange={(e) => setSteamPath(e.target.value)}
-          />
-          <Button variant="outline" onClick={pickPath}>Browse...</Button>
-        </div>
-      </Section>
+    <div className="h-full overflow-y-auto">
+      <div className="px-6 py-6 max-w-2xl">
+        <Section title="Steam install path" description="Override the auto-detected folder">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              value={steamPath}
+              placeholder="(auto-detect)"
+              onChange={(e) => setSteamPath(e.target.value)}
+              className="flex-1 min-w-0"
+            />
+            <Button variant="outline" onClick={pickPath} className="sm:w-auto">
+              Browse...
+            </Button>
+          </div>
+        </Section>
 
-      <Section
-        title="Backup retention"
-        description="Auto-delete old backups when more than this number exist per (account, game). Manual backups are never auto-deleted."
-      >
-        <div className="flex items-center gap-2">
-          <Label htmlFor="retention" className="w-24">Keep last</Label>
-          <Input
-            id="retention"
-            type="number"
-            min={1}
-            value={retention}
-            onChange={(e) => setRetention(Number(e.target.value) || 1)}
-            className="w-24"
-          />
-        </div>
-      </Section>
+        <Section
+          title="Backup retention"
+          description="Auto-delete old auto-backups when more than this number exist per (account, game). Manual backups are never auto-deleted."
+        >
+          <div className="flex items-center gap-2">
+            <Label htmlFor="retention" className="text-sm">Keep last</Label>
+            <Input
+              id="retention"
+              type="number"
+              min={1}
+              value={retention}
+              onChange={(e) => setRetention(Number(e.target.value) || 1)}
+              className="w-20"
+            />
+            <span className="text-sm text-muted-foreground">most recent</span>
+          </div>
+        </Section>
 
-      <Section title="Appearance" description="Theme">
-        <div className="flex items-center gap-2">
-          <Label className="w-24">Theme</Label>
+        <Section title="Appearance" description="Theme">
           <Select value={theme} onValueChange={(v) => setTheme(v as "light" | "dark" | "system")}>
-            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="system">System</SelectItem>
               <SelectItem value="light">Light</SelectItem>
               <SelectItem value="dark">Dark</SelectItem>
             </SelectContent>
           </Select>
+        </Section>
+
+        <div className="flex justify-end">
+          <Button onClick={save} disabled={update.isPending}>Save</Button>
         </div>
-      </Section>
 
-      <div className="flex justify-end">
-        <Button onClick={save} disabled={update.isPending}>Save</Button>
+        {version && (
+          <p className="text-xs text-muted-foreground text-center pt-6">
+            Carry v{version}
+          </p>
+        )}
       </div>
-
-      {version && (
-        <p className="text-xs text-muted-foreground text-center pt-6">
-          Carry v{version}
-        </p>
-      )}
     </div>
   );
 }

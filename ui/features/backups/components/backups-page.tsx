@@ -66,7 +66,7 @@ export function BackupsPage() {
     : "";
 
   return (
-    <div className="px-6 py-6">
+    <div className="h-full overflow-y-auto px-6 py-6">
       <Section title="Account" description="Pick an account to view its backups">
         {accounts.length === 0 ? (
           <p className="text-sm text-muted-foreground">

@@ -15,8 +15,9 @@
         "title": "Carry",
         "width": 1100,
         "height": 750,
-        "minWidth": 900,
-        "minHeight": 600,
+        "minWidth": 520,
+        "minHeight": 380,
+        "decorations": false,
         "theme": null
       }
     ],

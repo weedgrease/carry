@@ -8,7 +8,9 @@ use std::path::PathBuf;
 /// games — typically Steam's own internal apps. Filtered out so they don't
 /// appear in the games list. Add new entries here if more show up.
 const STEAM_INTERNAL_APP_IDS: &[u32] = &[
-    7, // Steam client itself
+    7,      // Steam client itself
+    760,    // Steam Screenshots
+    241100, // Steam Input controller configs
 ];
 
 #[derive(Debug, Clone, Serialize)]
@@ -89,13 +91,18 @@ mod tests {
         std::fs::create_dir_all(root.join("config")).unwrap();
         // Real game (Dota 2)
         std::fs::create_dir_all(root.join("userdata/12345/570")).unwrap();
-        // Steam internal: app id 7 (Steam client itself)
-        std::fs::create_dir_all(root.join("userdata/12345/7/local")).unwrap();
-        std::fs::write(root.join("userdata/12345/7/local/foo.txt"), "x").unwrap();
+        // Steam internal app ids: each gets a fake file so dir_stats sees something.
+        for internal in [7u32, 760, 241100] {
+            let dir = root.join(format!("userdata/12345/{internal}/local"));
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("foo.txt"), "x").unwrap();
+        }
         let install = validate_steam_root(root).unwrap();
         let games = list_for_account(&install, 12345).unwrap();
         let ids: Vec<u32> = games.iter().map(|g| g.app_id).collect();
         assert!(ids.contains(&570));
-        assert!(!ids.contains(&7), "app ID 7 (Steam client) should be filtered out");
+        assert!(!ids.contains(&7), "app id 7 (Steam client) should be filtered");
+        assert!(!ids.contains(&760), "app id 760 (Steam Screenshots) should be filtered");
+        assert!(!ids.contains(&241100), "app id 241100 (Steam Input) should be filtered");
     }
 }
