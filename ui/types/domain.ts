@@ -3,6 +3,7 @@ export type Account = {
   steam_id_32: number;
   account_name: string;
   persona_name: string;
+  display_name: string;
   avatar_path: string | null;
   last_login: string | null;
   has_userdata: boolean;
@@ -15,6 +16,7 @@ export type GameView = {
   last_modified: string | null;
   name: string;
   header_image_url: string;
+  is_known: boolean;
 };
 
 export type BackupReason = "Manual" | "PreCopy" | "PreRestore";
