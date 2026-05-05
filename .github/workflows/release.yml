@@ -69,7 +69,7 @@ jobs:
 
   release:
     needs: prepare
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     steps:
       - uses: actions/checkout@v6
         with:
@@ -86,6 +86,7 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
       - name: Build & release
+        id: tauri
         uses: tauri-apps/tauri-action@action-v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -98,3 +99,35 @@ jobs:
           releaseDraft: true
           prerelease: false
           projectPath: .
+
+      - name: Package portable .exe
+        id: portable
+        shell: pwsh
+        run: |
+          $version = "${{ needs.prepare.outputs.version }}"
+          $exe = "core/target/release/carry.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "Expected $exe to exist after Tauri build. Inspect upload-artifact output."
+            exit 1
+          }
+          $zip = "carry-$version-portable.zip"
+          Compress-Archive -Path $exe -DestinationPath $zip -Force
+          echo "path=$zip" >> $env:GITHUB_OUTPUT
+
+      - name: Attach portable .zip to release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v${{ needs.prepare.outputs.version }}" "${{ steps.portable.outputs.path }}" --clobber
+
+      - name: Upload all bundle outputs as workflow artifact (fallback)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: carry-${{ needs.prepare.outputs.version }}-bundle
+          path: |
+            core/target/release/bundle/**/*
+            core/target/release/carry.exe
+            ${{ steps.portable.outputs.path }}
+          if-no-files-found: warn

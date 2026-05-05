@@ -27,10 +27,22 @@ Then:
 
 ```bash
 pnpm install
-pnpm tauri:dev   # launches the desktop window
+pnpm tauri:dev   # launches the desktop window (uses WSLg on WSL2)
 pnpm build       # frontend production build
 cd core && cargo test  # Rust unit tests
 ```
+
+### Cross-compile a portable Windows .exe (from Linux/WSL2)
+
+For local testing on a Windows machine without going through the full release workflow, you can cross-compile a bare Windows .exe via [cargo-xwin](https://github.com/rust-cross/cargo-xwin):
+
+```bash
+pnpm build:windows-portable
+```
+
+That produces `core/target/x86_64-pc-windows-msvc/release/carry.exe` plus a zipped `carry-X.Y.Z-portable.zip` at the project root. Copy either to a Windows machine and run. **This is just the bare binary** — for the NSIS / MSI installers, use the release workflow (Windows-side tooling required).
+
+The .exe needs WebView2 runtime on the target Windows machine. Windows 11 and recent Windows 10 ship with it.
 
 ## Release process
 
