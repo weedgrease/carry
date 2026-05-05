@@ -45,13 +45,15 @@ if ! command -v clang-cl >/dev/null 2>&1 || ! command -v lld-link >/dev/null 2>&
   exit 1
 fi
 
-# 3. Frontend production build (Tauri embeds it at build time)
-echo ">>> pnpm build (frontend)"
-pnpm build
-
-# 4. Cross-compile the Tauri Rust binary
-echo ">>> cargo xwin build --release --target x86_64-pc-windows-msvc"
-( cd core && cargo xwin build --release --target x86_64-pc-windows-msvc )
+# 4. Build via the Tauri CLI with cargo-xwin as the cargo runner. We skip the
+#    NSIS/MSI bundlers (--bundles none) since those need Windows-side tooling.
+#    The Tauri CLI handles `pnpm build` (beforeBuildCommand), the
+#    generate_context!() asset embedding, and the release-mode flags so the
+#    resulting .exe loads embedded frontend assets instead of falling back to
+#    devUrl. (Bare `cargo xwin build` skips that wiring and produces an .exe
+#    that tries to load http://localhost:1420 at startup.)
+echo ">>> pnpm tauri build --runner cargo-xwin --target x86_64-pc-windows-msvc --bundles none"
+pnpm tauri build --runner cargo-xwin --target x86_64-pc-windows-msvc --bundles none
 
 EXE="core/target/x86_64-pc-windows-msvc/release/carry.exe"
 if [ ! -f "$EXE" ]; then
