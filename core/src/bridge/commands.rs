@@ -30,6 +30,7 @@ pub struct GameView {
     pub game: GameRef,
     pub name: String,
     pub header_image_url: String,
+    pub is_known: bool,
 }
 
 #[tauri::command]
@@ -57,10 +58,16 @@ pub async fn list_games(
                 header_image_url: crate::steam::metadata::header_image_url(g.app_id),
                 is_known: false,
             });
+            let display_name = if meta.is_known {
+                meta.name.clone()
+            } else {
+                format!("Untitled · ID {}", meta.app_id)
+            };
             GameView {
                 game: g,
-                name: meta.name,
+                name: display_name,
                 header_image_url: meta.header_image_url,
+                is_known: meta.is_known,
             }
         })
         .collect())
