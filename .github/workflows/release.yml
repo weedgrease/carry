@@ -1,20 +1,79 @@
 name: Release
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type (ignored if 'version' is set)"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      version:
+        description: "Explicit version (e.g., 1.0.0). Overrides bump if set."
+        type: string
+        required: false
+
 permissions:
   contents: write
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows-latest
-    runs-on: ${{ matrix.platform }}
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
     steps:
       - uses: actions/checkout@v6
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump versions
+        id: bump
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.version }}" ]; then
+            pnpm version "${{ inputs.version }}" --no-git-tag-version --allow-same-version
+          else
+            pnpm version "${{ inputs.bump }}" --no-git-tag-version
+          fi
+          NEW=$(node -p "require('./package.json').version")
+          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+
+          # core/tauri.conf.json
+          tmp=$(mktemp)
+          jq --arg v "$NEW" '.version = $v' core/tauri.conf.json > "$tmp"
+          mv "$tmp" core/tauri.conf.json
+
+          # core/Cargo.toml — only [package] version (the first ^version = line)
+          sed -i 's/^version = "[^"]*"/version = "'"$NEW"'"/' core/Cargo.toml
+
+      - name: Commit and tag
+        run: |
+          set -euo pipefail
+          NEW="${{ steps.bump.outputs.version }}"
+          git add package.json core/tauri.conf.json core/Cargo.toml
+          git commit -m "chore(release): v$NEW"
+          git tag "v$NEW"
+          git push origin HEAD:main
+          git push origin "v$NEW"
+
+  release:
+    needs: prepare
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
       - name: Install pnpm
         uses: pnpm/action-setup@v6
       - name: Setup Node
@@ -33,9 +92,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Carry ${{ github.ref_name }}"
-          releaseBody: "See the assets to download and install this version."
+          tagName: v${{ needs.prepare.outputs.version }}
+          releaseName: "Carry v${{ needs.prepare.outputs.version }}"
+          releaseBody: "See assets to download and install this version."
           releaseDraft: true
           prerelease: false
           projectPath: .

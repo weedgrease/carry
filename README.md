@@ -34,30 +34,36 @@ cd core && cargo test  # Rust unit tests
 
 ## Release process
 
-Before the first release, generate the Tauri update signing key:
+Releases are cut from the GitHub Actions UI — no local tagging or version bumping needed.
+
+1. Go to **Actions → Release → Run workflow** at <https://github.com/weedgrease/carry/actions/workflows/release.yml>.
+2. Pick the bump type (`patch`, `minor`, `major`) — or paste an explicit version (e.g., `1.0.0`) to override.
+3. Click **Run workflow**.
+
+The workflow:
+
+- Bumps `package.json`, `core/tauri.conf.json`, and `core/Cargo.toml` to the new version
+- Commits as `chore(release): vX.Y.Z`
+- Creates and pushes the matching `vX.Y.Z` tag
+- Builds the Windows installer on a Windows runner
+- Signs it with the Tauri update key
+- Drafts a release at <https://github.com/weedgrease/carry/releases> — review and click **Publish** when ready
+
+### One-time setup for releases
+
+Generate the Tauri update signing key:
 
 ```bash
 pnpm tauri signer generate -w ~/.tauri/carry.key
+chmod 600 ~/.tauri/carry.key
 ```
 
-Paste the printed **public key** into `core/tauri.conf.json` at `plugins.updater.pubkey` (currently `REPLACE_WITH_BASE64_PUBLIC_KEY`). Save the **private key** to GitHub Actions secrets as `TAURI_SIGNING_PRIVATE_KEY` and the password as `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+Paste the public key (from `~/.tauri/carry.key.pub`) into `core/tauri.conf.json` at `plugins.updater.pubkey`. Add these repo secrets at <https://github.com/weedgrease/carry/settings/secrets/actions>:
 
-To cut a release:
+- `TAURI_SIGNING_PRIVATE_KEY` — full contents of `~/.tauri/carry.key`
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — the password used when generating the key
 
-1. Bump `version` in `package.json` and `core/tauri.conf.json`.
-2. Tag and push:
-   ```bash
-   git tag v0.1.0
-   git push --tags
-   ```
-3. GitHub Actions builds, signs, and drafts a release at <https://github.com/weedgrease/carry/releases>. Edit and publish.
-
-## Required secrets
-
-For the Release workflow:
-
-- `TAURI_SIGNING_PRIVATE_KEY` — output of `pnpm tauri signer generate`
-- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — the password used for the keypair
+Back up both somewhere safe (password manager). If you lose them, you can't issue updates that older installs of Carry will accept.
 
 ## Distribution caveat
 

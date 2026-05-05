@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { getVersion } from "@tauri-apps/api/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,7 @@ export function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [steamPath, setSteamPath] = useState("");
   const [retention, setRetention] = useState(20);
+  const [version, setVersion] = useState<string | null>(null);
 
   useEffect(() => {
     if (settings) {
@@ -24,6 +26,10 @@ export function SettingsPage() {
       setRetention(settings.backup_retention_per_pair);
     }
   }, [settings]);
+
+  useEffect(() => {
+    getVersion().then(setVersion).catch(() => {});
+  }, []);
 
   const save = () => {
     if (!settings) return;
@@ -106,6 +112,12 @@ export function SettingsPage() {
       <div className="flex justify-end">
         <Button onClick={save} disabled={update.isPending}>Save</Button>
       </div>
+
+      {version && (
+        <p className="text-xs text-muted-foreground text-center pt-2">
+          Carry v{version}
+        </p>
+      )}
     </div>
   );
 }
