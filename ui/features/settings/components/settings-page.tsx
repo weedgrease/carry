@@ -144,9 +144,12 @@ export function SettingsPage() {
       </div>
 
       {version && (
-        <div className="border-t py-2.5">
+        <div className="border-t py-2.5 space-y-0.5">
           <p className="text-xs text-muted-foreground text-center">
             carry v{version}
+          </p>
+          <p className="text-xs text-muted-foreground text-center">
+            Maintained by Kevin, Noah, and Bart
           </p>
         </div>
       )}
