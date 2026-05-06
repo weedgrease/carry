@@ -11,6 +11,7 @@ const STEAM_INTERNAL_APP_IDS: &[u32] = &[
     7,      // Steam client itself
     760,    // Steam Screenshots
     241100, // Steam Input controller configs
+    744350, // Steam awards / events
 ];
 
 #[derive(Debug, Clone, Serialize)]
@@ -92,7 +93,7 @@ mod tests {
         // Real game (Dota 2)
         std::fs::create_dir_all(root.join("userdata/12345/570")).unwrap();
         // Steam internal app ids: each gets a fake file so dir_stats sees something.
-        for internal in [7u32, 760, 241100] {
+        for internal in [7u32, 760, 241100, 744350] {
             let dir = root.join(format!("userdata/12345/{internal}/local"));
             std::fs::create_dir_all(&dir).unwrap();
             std::fs::write(dir.join("foo.txt"), "x").unwrap();
@@ -104,5 +105,6 @@ mod tests {
         assert!(!ids.contains(&7), "app id 7 (Steam client) should be filtered");
         assert!(!ids.contains(&760), "app id 760 (Steam Screenshots) should be filtered");
         assert!(!ids.contains(&241100), "app id 241100 (Steam Input) should be filtered");
+        assert!(!ids.contains(&744350), "app id 744350 (Steam awards) should be filtered");
     }
 }
