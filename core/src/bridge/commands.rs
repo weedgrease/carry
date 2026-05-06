@@ -144,6 +144,15 @@ pub async fn list_games(
 }
 
 #[tauri::command]
+pub async fn clear_games_cache(state: State<'_, AppState>) -> AppResult<()> {
+    let path = state.games_cache_path();
+    if path.exists() {
+        std::fs::remove_file(&path)?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn ensure_avatar(
     state: State<'_, AppState>,
     steam_id_64: String,

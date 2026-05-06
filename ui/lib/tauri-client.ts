@@ -17,6 +17,7 @@ export const api = {
   listAccounts: () => unwrap(invoke<Account[]>("list_accounts")),
   listGames: (steam_id_32: number) =>
     unwrap(invoke<GameView[]>("list_games", { steamId32: steam_id_32 })),
+  clearGamesCache: () => unwrap(invoke<void>("clear_games_cache")),
   ensureAvatar: (steam_id_64: string) =>
     unwrap(invoke<string>("ensure_avatar", { steamId64: steam_id_64 })),
   openPathInExplorer: (path: string) =>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,6 +15,7 @@ import { api } from "@/lib/tauri-client";
 import { useTheme } from "@/app/providers/theme-provider";
 
 export function SettingsPage() {
+  const queryClient = useQueryClient();
   const { data: settings } = useSettings();
   const update = useUpdateSettings();
   const { theme, setTheme } = useTheme();
@@ -105,6 +107,22 @@ export function SettingsPage() {
               <Label htmlFor="hide-untitled" className="text-sm font-normal cursor-pointer">
                 Hide untitled apps from the games list
               </Label>
+            </div>
+            <div className="mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  api.clearGamesCache()
+                    .then(() => {
+                      queryClient.removeQueries({ queryKey: ["games"] });
+                      toast.success("Game cache cleared. Names + images will refetch on next visit.");
+                    })
+                    .catch((e: { message: string }) => toast.error(e.message));
+                }}
+              >
+                Clear cached game names + images
+              </Button>
             </div>
           </Section>
 

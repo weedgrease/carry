@@ -23,6 +23,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             bridge::commands::list_accounts,
             bridge::commands::list_games,
+            bridge::commands::clear_games_cache,
             bridge::commands::ensure_avatar,
             bridge::commands::open_path_in_explorer,
             bridge::commands::list_backups,
