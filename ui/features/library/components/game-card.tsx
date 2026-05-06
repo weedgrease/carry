@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { GameView } from "@/types/domain";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,23 +16,29 @@ function fmtSize(n: number) {
 export function GameCard({
   game, selected, onToggle,
 }: { game: GameView; selected: boolean; onToggle: () => void }) {
+  // Some apps have a name from appdetails but no public header.jpg yet
+  // (pre-release / unannounced titles). Track image failure per card so we
+  // can fall through to the same placeholder treatment as untitled apps.
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = game.is_known && !imageFailed;
+
   return (
     <Card
       className={cn(
         "overflow-hidden cursor-pointer transition-all hover:shadow-md",
         selected && "ring-2 ring-primary",
-        !game.is_known && "opacity-70"
+        !showImage && "opacity-70"
       )}
       onClick={onToggle}
     >
       <div className="relative aspect-[460/215] bg-muted flex items-center justify-center">
-        {game.is_known ? (
+        {showImage ? (
           <img
             src={game.header_image_url}
             alt={game.name}
             className="absolute inset-0 size-full object-cover"
             loading="lazy"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            onError={() => setImageFailed(true)}
           />
         ) : (
           <HelpCircle className="size-10 text-muted-foreground" />
