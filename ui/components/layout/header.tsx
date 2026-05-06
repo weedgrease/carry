@@ -28,10 +28,10 @@ export function Header() {
               end={l.end}
               className={({ isActive }) =>
                 cn(
-                  "px-2.5 py-1 rounded-md text-xs transition-colors",
+                  "px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
                   isActive
-                    ? "bg-secondary text-secondary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 )
               }
             >
