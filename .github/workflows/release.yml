@@ -128,6 +128,7 @@ jobs:
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: true
           prerelease: false
+          includeUpdaterJson: true
           projectPath: .
 
       - name: Package portable .exe
