@@ -91,7 +91,7 @@ export function BackupsPage() {
             <Select value={reason} onValueChange={(v) => setReason(v as BackupReason | typeof ALL)}>
               <SelectTrigger className="w-44 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>All reasons</SelectItem>
+                <SelectItem value={ALL}>All types</SelectItem>
                 <SelectItem value="Manual">Manual</SelectItem>
                 <SelectItem value="PreCopy">Pre-Copy</SelectItem>
                 <SelectItem value="PreRestore">Pre-Restore</SelectItem>

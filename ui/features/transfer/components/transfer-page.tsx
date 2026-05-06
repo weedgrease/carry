@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "@/lib/tauri-client";
@@ -64,9 +64,46 @@ export function TransferPage() {
 
   const ready = !!source && selectedAppIds.size > 0 && targetIds.size > 0;
 
+  // If the user changed Steam path (or any other reason the previously-
+  // selected source no longer exists), drop the stale selection so the
+  // page returns to its empty Source-only state.
+  useEffect(() => {
+    if (sourceId && accounts.length > 0 && !source) {
+      reset();
+    }
+  }, [sourceId, source, accounts.length, reset]);
+
+  // Auto-scroll between sections so users on smaller windows don't have
+  // to manually scroll after each decision.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const gamesRef = useRef<HTMLDivElement>(null);
+  const targetsRef = useRef<HTMLDivElement>(null);
+  const prevHasGames = useRef(false);
+
+  useEffect(() => {
+    if (sourceId) {
+      requestAnimationFrame(() => {
+        gamesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    } else {
+      // Reset → scroll back to top so SOURCE is visible again.
+      scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [sourceId]);
+
+  useEffect(() => {
+    const hasGames = selectedAppIds.size > 0;
+    if (hasGames && !prevHasGames.current) {
+      requestAnimationFrame(() => {
+        targetsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+    prevHasGames.current = hasGames;
+  }, [selectedAppIds.size]);
+
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
         <Section title="Source" description="Pick the account you want to copy from">
           {accounts.length === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -83,28 +120,32 @@ export function TransferPage() {
         </Section>
 
         {source && (
-          <Section title="Games" description="Click cards to select. Multi-select.">
-            {games.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {source.display_name} has no game configs on disk.
-              </p>
-            ) : (
-              <GameGrid games={games} selected={selectedAppIds} onToggle={toggleApp} />
-            )}
-          </Section>
+          <div ref={gamesRef}>
+            <Section title="Games" description="Click cards to select. Multi-select.">
+              {games.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {source.display_name} has no game configs on disk.
+                </p>
+              ) : (
+                <GameGrid games={games} selected={selectedAppIds} onToggle={toggleApp} />
+              )}
+            </Section>
+          </div>
         )}
 
         {source && selectedAppIds.size > 0 && (
-          <Section title="Copy to" description="One or more targets. Source is hidden.">
-            <AccountGrid
-              mode="multi"
-              accounts={accounts}
-              value={targetIds}
-              onSelect={toggleTarget}
-              excludeIds={new Set([source.steam_id_64])}
-              emptyMessage="No other accounts available to copy to."
-            />
-          </Section>
+          <div ref={targetsRef}>
+            <Section title="Copy to" description="One or more targets. Source is hidden.">
+              <AccountGrid
+                mode="multi"
+                accounts={accounts}
+                value={targetIds}
+                onSelect={toggleTarget}
+                excludeIds={new Set([source.steam_id_64])}
+                emptyMessage="No other accounts available to copy to."
+              />
+            </Section>
+          </div>
         )}
       </div>
 
