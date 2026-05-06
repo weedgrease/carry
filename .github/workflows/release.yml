@@ -78,6 +78,9 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: v${{ needs.prepare.outputs.version }}
+          # Need full history (and tags) so `git describe --tags` can
+          # find the previous release for the changelog generator.
+          fetch-depth: 0
       - name: Install pnpm
         uses: pnpm/action-setup@v6
       - name: Setup Node
@@ -89,6 +92,29 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Install deps
         run: pnpm install --frozen-lockfile
+
+      # Build a changelog from the commits between the previous tag and HEAD.
+      # First-ever release falls back to a placeholder.
+      - name: Generate release notes
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          NEW="v${{ needs.prepare.outputs.version }}"
+          # Find the most recent tag *before* the one we just cut.
+          PREV=$(git describe --tags --abbrev=0 "${NEW}^" 2>/dev/null || echo "")
+          if [ -z "$PREV" ]; then
+            BODY="Initial public release. See [README](https://github.com/weedgrease/carry#readme) for what carry does and how to install it."
+          else
+            COMMITS=$(git log "${PREV}..${NEW}" --pretty=format:"- %s" --no-merges)
+            BODY=$'## What changed since '"$PREV"$'\n\n'"$COMMITS"
+          fi
+          {
+            echo 'body<<RELEASE_NOTES_EOF'
+            echo "$BODY"
+            echo 'RELEASE_NOTES_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build & release
         id: tauri
         uses: tauri-apps/tauri-action@action-v0.6.2
@@ -99,7 +125,7 @@ jobs:
         with:
           tagName: v${{ needs.prepare.outputs.version }}
           releaseName: "carry v${{ needs.prepare.outputs.version }}"
-          releaseBody: "See assets to download and install this version."
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: true
           prerelease: false
           projectPath: .
@@ -124,14 +150,3 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "v${{ needs.prepare.outputs.version }}" "${{ steps.portable.outputs.path }}" --clobber
-
-      - name: Upload all bundle outputs as workflow artifact (fallback)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: carry-${{ needs.prepare.outputs.version }}-bundle
-          path: |
-            core/target/release/bundle/**/*
-            core/target/release/carry.exe
-            ${{ steps.portable.outputs.path }}
-          if-no-files-found: warn
