@@ -1,31 +1,49 @@
 import { Minus, Square, X } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { toast } from "sonner";
 
-const win = getCurrentWindow();
+async function runWindowAction(label: string, fn: () => Promise<void>) {
+  try {
+    await fn();
+  } catch (e) {
+    const msg = (e as { message?: string }).message ?? String(e);
+    toast.error(`${label} failed: ${msg}`);
+  }
+}
+
+const minimize = () => runWindowAction("Minimize", () => getCurrentWindow().minimize());
+const toggleMaximize = () => runWindowAction("Maximize toggle", () => getCurrentWindow().toggleMaximize());
+const close = () => runWindowAction("Close", () => getCurrentWindow().close());
 
 export function WindowControls() {
   return (
-    <div className="flex items-stretch h-full">
+    <div
+      className="flex items-stretch h-full"
+      data-tauri-drag-region="false"
+    >
       <button
         type="button"
-        onClick={() => win.minimize()}
+        onClick={minimize}
         aria-label="Minimize"
+        data-tauri-drag-region="false"
         className="w-10 inline-flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
       >
         <Minus className="size-3.5" />
       </button>
       <button
         type="button"
-        onClick={() => win.toggleMaximize()}
+        onClick={toggleMaximize}
         aria-label="Maximize"
+        data-tauri-drag-region="false"
         className="w-10 inline-flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
       >
         <Square className="size-3" />
       </button>
       <button
         type="button"
-        onClick={() => win.close()}
+        onClick={close}
         aria-label="Close"
+        data-tauri-drag-region="false"
         className="w-10 inline-flex items-center justify-center text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"
       >
         <X className="size-3.5" />
