@@ -134,11 +134,9 @@ jobs:
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: true
           prerelease: false
-          # tauri-action 0.6.2's includeUpdaterJson is broken against Tauri 2's
-          # bundle layout (looks for sig in pre-Tauri-2 paths, then logs
-          # "Signature not found for the updater JSON. Skipping upload..."),
-          # so we generate latest.json + upload the updater payload manually
-          # in the next step instead.
+          # tauri-action's default includeUpdaterJson: true now works because
+          # createUpdaterArtifacts is enabled in tauri.conf.json — Tauri emits
+          # the .exe.sig the action needs to write latest.json.
           projectPath: .
 
       - name: Package portable .exe
@@ -162,44 +160,3 @@ jobs:
         run: |
           gh release upload "v${{ needs.prepare.outputs.version }}" "${{ steps.portable.outputs.path }}" --clobber
 
-      - name: Generate latest.json for in-app updater
-        # With createUpdaterArtifacts: true (Tauri 2 native format), Tauri
-        # signs the NSIS installer .exe directly — no .nsis.zip wrapper.
-        # The in-app updater downloads the .exe and verifies it against the
-        # signature embedded in latest.json. tauri-action already uploads the
-        # .exe; we just need to write latest.json pointing at it.
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          $version = "${{ needs.prepare.outputs.version }}"
-          $bundleDir = "core/target/release/bundle/nsis"
-          $exeName = "carry_${version}_x64-setup.exe"
-          $exePath = Join-Path $bundleDir $exeName
-          $sigPath = "$exePath.sig"
-
-          if (-not (Test-Path $exePath) -or -not (Test-Path $sigPath)) {
-            Write-Host "Expected updater payload not found. Bundle dir tree follows:"
-            if (Test-Path "core/target/release/bundle") {
-              Get-ChildItem -Recurse "core/target/release/bundle" | ForEach-Object { Write-Host "  $($_.FullName)" }
-            } else {
-              Write-Host "  (core/target/release/bundle does not exist)"
-            }
-            Write-Error "Missing either $exePath or $sigPath."
-            exit 1
-          }
-
-          $signature = (Get-Content $sigPath -Raw).Trim()
-          $url = "https://github.com/weedgrease/carry/releases/download/v${version}/$exeName"
-          $manifest = [ordered]@{
-            version = $version
-            pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-            platforms = [ordered]@{
-              "windows-x86_64" = [ordered]@{
-                signature = $signature
-                url = $url
-              }
-            }
-          }
-          $manifest | ConvertTo-Json -Depth 4 | Set-Content -Path "latest.json" -Encoding utf8
-          gh release upload "v$version" "latest.json" --clobber

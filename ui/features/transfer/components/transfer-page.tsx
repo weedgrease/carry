@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { ArrowDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/tauri-client";
 import type { GameView, TransferPair, TransferOutcome } from "@/types/domain";
@@ -95,12 +95,13 @@ export function TransferPage() {
     }
   }, [sourceId, source, accounts.length, reset]);
 
-  // Auto-scroll between sections so users on smaller windows don't have
-  // to manually scroll after each decision.
+  // Auto-scroll on source selection (one decision = one nav). Game selection
+  // does NOT auto-scroll — we don't want to whisk the user away while they
+  // might still be multi-selecting. Instead an explicit "Pick destinations"
+  // button appears below the grid; that's the user's signal they're done.
   const scrollRef = useRef<HTMLDivElement>(null);
   const gamesRef = useRef<HTMLDivElement>(null);
   const targetsRef = useRef<HTMLDivElement>(null);
-  const prevHasGames = useRef(false);
 
   useEffect(() => {
     if (sourceId) {
@@ -113,15 +114,9 @@ export function TransferPage() {
     }
   }, [sourceId]);
 
-  useEffect(() => {
-    const hasGames = selectedAppIds.size > 0;
-    if (hasGames && !prevHasGames.current) {
-      requestAnimationFrame(() => {
-        targetsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
-    prevHasGames.current = hasGames;
-  }, [selectedAppIds.size]);
+  const scrollToTargets = () => {
+    targetsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -168,7 +163,17 @@ export function TransferPage() {
                   {source.display_name} has no game configs on disk.
                 </p>
               ) : (
-                <GameGrid games={sortedGames} selected={selectedAppIds} onToggle={toggleApp} />
+                <>
+                  <GameGrid games={sortedGames} selected={selectedAppIds} onToggle={toggleApp} />
+                  {selectedAppIds.size > 0 && (
+                    <div className="mt-6 flex justify-center">
+                      <Button variant="outline" onClick={scrollToTargets}>
+                        Pick destination accounts
+                        <ArrowDown className="size-4" />
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </Section>
           </div>
