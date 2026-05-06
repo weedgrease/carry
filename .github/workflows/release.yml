@@ -162,35 +162,35 @@ jobs:
         run: |
           gh release upload "v${{ needs.prepare.outputs.version }}" "${{ steps.portable.outputs.path }}" --clobber
 
-      - name: Generate latest.json + attach updater payload
-        # Tauri's updater downloads the .nsis.zip (not the .exe installer)
-        # and verifies it against the signature in latest.json. Both need to
-        # be on the release for in-app updates to work.
+      - name: Generate latest.json for in-app updater
+        # With createUpdaterArtifacts: true (Tauri 2 native format), Tauri
+        # signs the NSIS installer .exe directly — no .nsis.zip wrapper.
+        # The in-app updater downloads the .exe and verifies it against the
+        # signature embedded in latest.json. tauri-action already uploads the
+        # .exe; we just need to write latest.json pointing at it.
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $version = "${{ needs.prepare.outputs.version }}"
           $bundleDir = "core/target/release/bundle/nsis"
-          # Use the deterministic Tauri filename instead of a glob — Get-ChildItem
-          # -Filter has bitten us in the past (Windows fs filter ≠ PowerShell glob).
-          $zipName = "carry_${version}_x64-setup.nsis.zip"
-          $zipPath = Join-Path $bundleDir $zipName
-          $sigPath = "$zipPath.sig"
+          $exeName = "carry_${version}_x64-setup.exe"
+          $exePath = Join-Path $bundleDir $exeName
+          $sigPath = "$exePath.sig"
 
-          if (-not (Test-Path $zipPath) -or -not (Test-Path $sigPath)) {
+          if (-not (Test-Path $exePath) -or -not (Test-Path $sigPath)) {
             Write-Host "Expected updater payload not found. Bundle dir tree follows:"
             if (Test-Path "core/target/release/bundle") {
               Get-ChildItem -Recurse "core/target/release/bundle" | ForEach-Object { Write-Host "  $($_.FullName)" }
             } else {
               Write-Host "  (core/target/release/bundle does not exist)"
             }
-            Write-Error "Missing either $zipPath or $sigPath."
+            Write-Error "Missing either $exePath or $sigPath."
             exit 1
           }
 
           $signature = (Get-Content $sigPath -Raw).Trim()
-          $url = "https://github.com/weedgrease/carry/releases/download/v${version}/$zipName"
+          $url = "https://github.com/weedgrease/carry/releases/download/v${version}/$exeName"
           $manifest = [ordered]@{
             version = $version
             pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
@@ -202,4 +202,4 @@ jobs:
             }
           }
           $manifest | ConvertTo-Json -Depth 4 | Set-Content -Path "latest.json" -Encoding utf8
-          gh release upload "v$version" $zipPath "latest.json" --clobber
+          gh release upload "v$version" "latest.json" --clobber
