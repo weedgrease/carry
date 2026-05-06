@@ -32,6 +32,7 @@ pub fn create(req: CreateRequest) -> AppResult<CreateResult> {
         BackupReason::Manual => "manual",
         BackupReason::PreCopy => "precopy",
         BackupReason::PreRestore => "prerestore",
+        BackupReason::Source => "source",
     };
     let dir = req.backup_root.join(req.steam_id_64).join(req.app_id.to_string());
     std::fs::create_dir_all(&dir)?;

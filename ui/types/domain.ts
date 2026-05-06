@@ -19,7 +19,7 @@ export type GameView = {
   is_known: boolean;
 };
 
-export type BackupReason = "Manual" | "PreCopy" | "PreRestore";
+export type BackupReason = "Manual" | "PreCopy" | "PreRestore" | "Source";
 
 export type Manifest = {
   schema_version: number;

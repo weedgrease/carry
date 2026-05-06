@@ -95,6 +95,7 @@ export function BackupsPage() {
                 <SelectItem value="Manual">Manual</SelectItem>
                 <SelectItem value="PreCopy">Pre-Copy</SelectItem>
                 <SelectItem value="PreRestore">Pre-Restore</SelectItem>
+                <SelectItem value="Source">Source</SelectItem>
               </SelectContent>
             </Select>
           }

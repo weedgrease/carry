@@ -43,8 +43,35 @@ pub fn run_transfer(
     // is launched (cloud sync) or while the account is the actively-logged-
     // in one (login/exit sync). The pre-copy auto-backup is the safety net
     // — if Steam clobbers the new config, the user can restore from it.
+    //
+    // For symmetry, we also snapshot the SOURCE side once per
+    // (source_steam_id_64, app_id) at the start of the transfer. This gives
+    // the user a recovery point if anything (Steam's cloud sync, an aborted
+    // copy, etc.) corrupts the source mid-operation.
+    let mut source_snapshots_taken: std::collections::HashSet<(String, u32)> =
+        std::collections::HashSet::new();
     let mut results = Vec::with_capacity(pairs.len());
     for pair in pairs {
+        let key = (pair.source_steam_id_64.clone(), pair.app_id);
+        if source_snapshots_taken.insert(key) {
+            // First time we've seen this (source, app_id) in this transfer —
+            // take a Source-reason backup. Best effort: if it fails, the
+            // per-pair PreCopy is still a recovery path for the target side.
+            let source_dir = install.userdata_dir()
+                .join(pair.source_steam_id_32.to_string())
+                .join(pair.app_id.to_string());
+            if source_dir.is_dir() {
+                let _ = create(CreateRequest {
+                    source_dir: &source_dir,
+                    steam_id_64: &pair.source_steam_id_64,
+                    persona_name: &pair.source_persona,
+                    app_id: pair.app_id,
+                    game_name: &pair.game_name,
+                    reason: BackupReason::Source,
+                    backup_root: opts.backup_root,
+                });
+            }
+        }
         results.push(run_single(install, pair, &opts));
     }
     Ok(results)
