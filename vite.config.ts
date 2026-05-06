@@ -20,7 +20,7 @@ export default defineConfig(async () => ({
   },
   build: {
     outDir: "dist",
-    // Carry is a desktop app loaded from disk, not over the network. The 500 kB
+    // carry is a desktop app loaded from disk, not over the network. The 500 kB
     // default is tuned for web bundles; raise it so normal-sized desktop chunks
     // don't trigger noise but a true regression (e.g. a 1.5 MB blob from
     // accidentally bundling something heavy) still gets flagged.

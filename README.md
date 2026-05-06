@@ -1,6 +1,6 @@
 <div align="center">
 
-# Carry
+# carry
 
 **Move Steam game configs between accounts on the same machine — automatically backed up before every change.**
 
@@ -13,9 +13,9 @@
 
 ---
 
-Steam doesn't let you share game configs — keybinds, video settings, hotkey layouts, anything else under `userdata/<id>/<appId>/` — across the multiple Steam accounts you might own. Carry does, safely.
+Steam doesn't let you share game configs — keybinds, video settings, hotkey layouts, anything else under `userdata/<id>/<appId>/` — across the multiple Steam accounts you might own. carry does, safely.
 
-Pick a source account. Pick the games whose configs you want to copy. Pick one or more target accounts. Carry takes a backup of every existing target config before overwriting it, so a transfer you regret is two clicks away from being undone.
+Pick a source account. Pick the games whose configs you want to copy. Pick one or more target accounts. carry takes a backup of every existing target config before overwriting it, so a transfer you regret is two clicks away from being undone.
 
 ## Highlights
 
@@ -26,13 +26,13 @@ Pick a source account. Pick the games whose configs you want to copy. Pick one o
 - **Real Steam profile pictures and game cover art** — pulled from Steam's local avatar cache and public CDN. No API keys, no logins.
 - **Signed auto-updates** via GitHub Releases — the app verifies each update's signature before installing
 - **Custom title bar, light + dark mode, responsive layout** — feels like a native app, not a browser pretending to be one
-- **Offline-first** — Carry only hits the network to (a) fetch a profile picture for an account that hasn't logged in on this machine, or (b) fetch a game's display name + header art on first scan. Both cached forever
+- **Offline-first** — carry only hits the network to (a) fetch a profile picture for an account that hasn't logged in on this machine, or (b) fetch a game's display name + header art on first scan. Both cached forever
 
-## What Carry doesn't touch
+## What carry doesn't touch
 
 This is a tool that writes to your Steam install. It earns trust by being narrow:
 
-- `loginusers.vdf` is **read-only**. Carry never adds, removes, or edits Steam accounts. If an account "disappears" from the list, Steam itself removed it (e.g. you signed out).
+- `loginusers.vdf` is **read-only**. carry never adds, removes, or edits Steam accounts. If an account "disappears" from the list, Steam itself removed it (e.g. you signed out).
 - During a transfer, the **source account's userdata is read-only** — only the target's `<id32>/<appId>/` folder gets written.
 - Other accounts' userdata folders are **untouched** during a transfer — only the specific targets you select.
 - Games you didn't tick are **untouched**.
@@ -48,17 +48,17 @@ Download the latest release for Windows:
 
 | File | When to use |
 |---|---|
-| `Carry_<version>_x64-setup.exe` | NSIS installer — typical "next-next-finish" wizard |
-| `Carry_<version>_x64_en-US.msi` | MSI installer — for IT / silent installs |
+| `carry_<version>_x64-setup.exe` | NSIS installer — typical "next-next-finish" wizard |
+| `carry_<version>_x64_en-US.msi` | MSI installer — for IT / silent installs |
 | `carry-<version>-portable.zip` | Bare `.exe`, no installer — extract anywhere |
 
 > **First-run note:** the installer isn't yet code-signed for Windows SmartScreen, so on first launch you'll see a warning. Click "More info" → "Run anyway". Update signatures (Tauri's signing key, separate from Microsoft's code signing) are verified automatically and protect you on every subsequent update.
 
-After install, Carry checks for updates on launch and prompts you when one is available. Updates are signed and verified before installation.
+After install, carry checks for updates on launch and prompts you when one is available. Updates are signed and verified before installation.
 
 ## Usage
 
-1. **Open Carry.** It auto-detects your Steam install via the Windows registry. If it can't find Steam, set the path under Settings → Steam install path.
+1. **Open carry.** It auto-detects your Steam install via the Windows registry. If it can't find Steam, set the path under Settings → Steam install path.
 2. **Transfer page → pick a source account.** The Games section reveals once a source is chosen.
 3. **Pick the games you want to copy.** Cards show real Steam header art for known apps. Internal Steam apps (the Steam client itself, Steam Input, etc.) are filtered out by default — toggle "Hide untitled apps" in Settings if you want to see them.
 4. **Pick one or more target accounts.** Source is hidden from the targets list automatically.
@@ -148,7 +148,7 @@ Paste the **public** key from `~/.tauri/carry.key.pub` into `core/tauri.conf.jso
 - `TAURI_SIGNING_PRIVATE_KEY` — full contents of `~/.tauri/carry.key`
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — the password used when generating the key
 
-The public key is committed to the repo *by design* — that's how every installed copy of Carry verifies that an update was genuinely signed by you. The private key is the only secret.
+The public key is committed to the repo *by design* — that's how every installed copy of carry verifies that an update was genuinely signed by you. The private key is the only secret.
 
 ## Contributing
 

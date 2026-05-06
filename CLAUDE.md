@@ -1,6 +1,6 @@
-# Carry — agent context
+# carry — agent context
 
-Carry is a Windows desktop utility that copies Steam game config files (the contents of Steam's `userdata/<steamId32>/<appId>/` tree) between Steam accounts on the same machine, with automatic and manual backups and signed auto-updates via GitHub Releases.
+carry is a Windows desktop utility that copies Steam game config files (the contents of Steam's `userdata/<steamId32>/<appId>/` tree) between Steam accounts on the same machine, with automatic and manual backups and signed auto-updates via GitHub Releases.
 
 The user-facing README is the canonical description of what the app does and how to install/build it. This file exists to give an AI assistant the architectural lay of the land.
 

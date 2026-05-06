@@ -94,7 +94,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: v${{ needs.prepare.outputs.version }}
-          releaseName: "Carry v${{ needs.prepare.outputs.version }}"
+          releaseName: "carry v${{ needs.prepare.outputs.version }}"
           releaseBody: "See assets to download and install this version."
           releaseDraft: true
           prerelease: false

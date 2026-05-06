@@ -128,7 +128,7 @@ export function SettingsPage() {
       {version && (
         <div className="border-t py-2.5">
           <p className="text-xs text-muted-foreground text-center">
-            Carry v{version}
+            carry v{version}
           </p>
         </div>
       )}

@@ -19,7 +19,7 @@ export function Header() {
         data-tauri-drag-region
         className="flex items-center gap-4 pl-4 pr-2 flex-1 min-w-0"
       >
-        <h1 className="font-semibold text-sm tracking-tight whitespace-nowrap">Carry</h1>
+        <h1 className="font-semibold text-sm tracking-tight whitespace-nowrap">carry</h1>
         <nav className="flex items-center gap-0.5">
           {links.map((l) => (
             <NavLink
