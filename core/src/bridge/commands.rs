@@ -9,7 +9,7 @@ use crate::steam::metadata::GameMetadata;
 use crate::sync::transfer::{run_transfer, TransferOptions, TransferOutcome, TransferPair};
 use serde::Serialize;
 use std::path::PathBuf;
-use tauri::State;
+use tauri::{Emitter, State};
 use tauri_plugin_updater::UpdaterExt;
 
 #[tauri::command]
@@ -39,6 +39,7 @@ pub struct GameView {
 
 #[tauri::command]
 pub async fn list_games(
+    handle: tauri::AppHandle,
     state: State<'_, AppState>,
     steam_id_32: u32,
 ) -> AppResult<Vec<GameView>> {
@@ -111,6 +112,7 @@ pub async fn list_games(
         if !to_fetch.is_empty() {
             let client = state.http.clone();
             let cache_path = cache_path.clone();
+            let handle = handle.clone();
             tokio::spawn(async move {
                 for id in to_fetch {
                     let result = crate::steam::metadata::fetch_one(&client, id).await;
@@ -134,6 +136,11 @@ pub async fn list_games(
                     cache.insert(id, entry);
                     let _ = crate::steam::metadata::save_cache(&cache_path, &cache);
                     in_progress.lock().unwrap().remove(&id);
+                    // Push an event so the frontend can re-render immediately
+                    // instead of waiting for the next poll tick. Payload is
+                    // the appId; the frontend just needs to know "something
+                    // changed" and re-fetch list_games (cheap — reads cache).
+                    let _ = handle.emit("game-metadata-updated", id);
                     tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
                 }
             });
