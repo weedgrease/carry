@@ -13,6 +13,9 @@
 
 ---
 
+> [!NOTE]
+> **carry is currently Windows-only.** macOS and Linux builds are planned but not yet shipped — the codebase is largely platform-agnostic but the released artifact is the Windows installer. Track [Issues](https://github.com/weedgrease/carry/issues) for status.
+
 Steam doesn't let you share game configs — keybinds, video settings, hotkey layouts, anything else under `userdata/<id>/<appId>/` — across the multiple Steam accounts you might own. carry does, safely.
 
 Pick a source account. Pick the games whose configs you want to copy. Pick one or more target accounts. carry takes a backup of every existing target config before overwriting it, so a transfer you regret is two clicks away from being undone.

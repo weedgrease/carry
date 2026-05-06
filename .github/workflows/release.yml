@@ -1,3 +1,7 @@
+# carry is currently Windows-only. The release job runs on a Windows runner
+# and produces NSIS + MSI installers plus a portable .zip. macOS and Linux
+# builds will be added later by extending this with a matrix strategy.
+
 name: Release
 on:
   workflow_dispatch:

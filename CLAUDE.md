@@ -77,9 +77,14 @@ Day-to-day:
 - Tauri update signing key generated once via `pnpm tauri signer generate -w ~/.tauri/carry.key`. Public key in `core/tauri.conf.json` `plugins.updater.pubkey` (committed; this is correct — public keys are *meant* to be public). Private key + password as GHA secrets `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
 - Bundle identifier: `com.weedgrease.carry`. Cargo package: `carry`. Lib: `carry_lib`.
 
+## Platform support
+
+**Windows-only for now.** macOS and Linux builds are planned for the future; the release workflow only ships a Windows installer + portable .zip, and `core/tauri.conf.json` `bundle.targets` is locked to `["nsis", "msi"]`. The codebase compiles on Linux/macOS for development purposes (`pnpm tauri:dev` works on WSL2), but `pnpm tauri:build` only produces a Windows installer when run via the workflow on a Windows runner.
+
+When adding macOS/Linux later: extend `.github/workflows/release.yml` with a `matrix.platform` strategy, and broaden `bundle.targets` in `tauri.conf.json` (e.g. `["nsis", "msi", "deb", "appimage", "dmg", "app"]`).
+
 ## Intentional non-goals (v1)
 
-- macOS / Linux builds — Windows-only
 - Steam Web API integration — 100% offline-first + public CDN
 - Account switching (TcNo's main feature — explicitly excluded)
 - Cloud-stored backups
