@@ -29,3 +29,4 @@ vite.config.js
 *.sw?
 carry-*-portable.zip
 .superpowers/
+*:Zone.Identifier
