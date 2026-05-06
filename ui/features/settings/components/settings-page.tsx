@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getVersion } from "@tauri-apps/api/app";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,12 +19,14 @@ export function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [steamPath, setSteamPath] = useState("");
   const [retention, setRetention] = useState(20);
+  const [hideUntitled, setHideUntitled] = useState(true);
   const [version, setVersion] = useState<string | null>(null);
 
   useEffect(() => {
     if (settings) {
       setSteamPath(settings.steam_path_override ?? "");
       setRetention(settings.backup_retention_per_pair);
+      setHideUntitled(settings.hide_untitled_apps);
     }
   }, [settings]);
 
@@ -37,6 +40,7 @@ export function SettingsPage() {
       ...settings,
       steam_path_override: steamPath ? steamPath : null,
       backup_retention_per_pair: retention,
+      hide_untitled_apps: hideUntitled,
     }, {
       onSuccess: () => toast.success("Settings saved"),
       onError: (e: { message: string }) => toast.error(e.message),
@@ -85,6 +89,22 @@ export function SettingsPage() {
                 className="w-20"
               />
               <span className="text-sm text-muted-foreground">most recent</span>
+            </div>
+          </Section>
+
+          <Section
+            title="Game list"
+            description="Apps without Steam store metadata are typically internal Steam apps (e.g. Steam Client, Steam Input, etc.)."
+          >
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hide-untitled"
+                checked={hideUntitled}
+                onCheckedChange={(v) => setHideUntitled(v === true)}
+              />
+              <Label htmlFor="hide-untitled" className="text-sm font-normal cursor-pointer">
+                Hide untitled apps from the games list
+              </Label>
             </div>
           </Section>
 

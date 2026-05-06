@@ -49,6 +49,7 @@ pub async fn list_games(
     let mut cache = crate::steam::metadata::load_cache(&cache_path)?;
     let ids: Vec<u32> = games.iter().map(|g| g.app_id).collect();
     crate::steam::metadata::ensure_cached(&state.http, &cache_path, &mut cache, &ids).await?;
+    let hide_untitled = state.settings.lock().unwrap().hide_untitled_apps;
     Ok(games
         .into_iter()
         .map(|g| {
@@ -70,6 +71,7 @@ pub async fn list_games(
                 is_known: meta.is_known,
             }
         })
+        .filter(|view| !hide_untitled || view.is_known)
         .collect())
 }
 

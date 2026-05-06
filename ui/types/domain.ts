@@ -61,6 +61,7 @@ export type Settings = {
   steam_path_override: string | null;
   backup_retention_per_pair: number;
   last_update_check: string | null;
+  hide_untitled_apps: boolean;
 };
 
 export type AppError = { code: string; message: string };
