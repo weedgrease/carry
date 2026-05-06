@@ -3,7 +3,6 @@ use crate::archive::list::{read_manifest, BackupRecord};
 use crate::archive::manifest::{BackupReason, MANIFEST_FILENAME};
 use crate::error::{AppError, AppResult};
 use crate::steam::install::SteamInstall;
-use crate::sync::preflight::ensure_steam_not_running;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -14,7 +13,8 @@ pub fn restore(
     target_steam_id_32: u32,
     backup_root: &Path,
 ) -> AppResult<PathBuf> {
-    ensure_steam_not_running()?;
+    // Note: no Steam-running guard. The PreRestore safety backup is the
+    // recovery path if anything goes sideways during the extract.
     let manifest = read_manifest(&record.archive_path)?;
     let target_dir = install.userdata_dir()
         .join(target_steam_id_32.to_string())

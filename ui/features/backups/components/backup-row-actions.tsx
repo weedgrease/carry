@@ -71,8 +71,8 @@ export function BackupRowActions({ record }: { record: BackupRecord }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Restore {record.manifest.game_name_at_backup}?</AlertDialogTitle>
             <AlertDialogDescription>
-              The current config for this game on {owner?.persona_name} will be backed up first
-              (PreRestore). Steam must not be running.
+              The current config for this game on {owner?.display_name ?? owner?.persona_name} will
+              be backed up first (PreRestore) so you can roll back if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

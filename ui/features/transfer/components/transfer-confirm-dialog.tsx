@@ -20,7 +20,7 @@ export function TransferConfirmDialog({
           <AlertDialogTitle>Transfer {gamesCount} games to {targetsCount} accounts?</AlertDialogTitle>
           <AlertDialogDescription>
             Each target's existing config for these games will be backed up automatically before being overwritten.
-            Steam must not be running during the transfer. {pairs} configs will be processed.
+            {" "}{pairs} configs will be processed.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

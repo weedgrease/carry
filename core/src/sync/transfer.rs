@@ -4,7 +4,7 @@ use crate::archive::retention::prune_for_pair;
 use crate::error::{AppError, AppResult};
 use crate::steam::install::SteamInstall;
 use crate::sync::copy::TwoPhaseCopy;
-use crate::sync::preflight::{dir_size, ensure_disk_space, ensure_steam_not_running};
+use crate::sync::preflight::{dir_size, ensure_disk_space};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -38,7 +38,11 @@ pub fn run_transfer(
     pairs: &[TransferPair],
     opts: TransferOptions,
 ) -> AppResult<Vec<TransferOutcome>> {
-    ensure_steam_not_running()?;
+    // Note: we deliberately do NOT block on Steam being open. Steam usually
+    // only writes to a userdata/<id>/<appId>/ tree while THAT specific game
+    // is launched (cloud sync) or while the account is the actively-logged-
+    // in one (login/exit sync). The pre-copy auto-backup is the safety net
+    // — if Steam clobbers the new config, the user can restore from it.
     let mut results = Vec::with_capacity(pairs.len());
     for pair in pairs {
         results.push(run_single(install, pair, &opts));
