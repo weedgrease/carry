@@ -61,11 +61,17 @@ jobs:
           # core/Cargo.toml — only [package] version (the first ^version = line)
           sed -i 's/^version = "[^"]*"/version = "'"$NEW"'"/' core/Cargo.toml
 
+          # core/Cargo.lock — bump the carry package's version line so the
+          # lock doesn't lag behind Cargo.toml. Without this, anyone running
+          # `cargo build` after pulling the bump commit gets a stale-lock
+          # diff. Match by walking from `name = "carry"` to the next version.
+          sed -i '/^name = "carry"$/{n;s/^version = "[^"]*"/version = "'"$NEW"'"/;}' core/Cargo.lock
+
       - name: Commit and tag
         run: |
           set -euo pipefail
           NEW="${{ steps.bump.outputs.version }}"
-          git add package.json core/tauri.conf.json core/Cargo.toml
+          git add package.json core/tauri.conf.json core/Cargo.toml core/Cargo.lock
           git commit -m "chore(release): v$NEW"
           git tag "v$NEW"
           git push origin HEAD:main
