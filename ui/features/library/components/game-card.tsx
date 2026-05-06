@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { GameView } from "@/types/domain";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,6 +20,13 @@ export function GameCard({
   // (pre-release / unannounced titles). Track image failure per card so we
   // can fall through to the same placeholder treatment as untitled apps.
   const [imageFailed, setImageFailed] = useState(false);
+  // The browser's HTTP cache often has cover-art bytes from a previous
+  // session. Without this, when metadata arrives the <img> mounts AND its
+  // bytes resolve in the same React commit, so the name and image reveal
+  // together. Mounting at opacity 0 and fading in on `load` (which fires
+  // async even for cached images) makes the name visibly land first.
+  const [imageReady, setImageReady] = useState(false);
+  useEffect(() => { setImageReady(false); }, [game.header_image_url]);
   const showImage = game.is_known && !imageFailed;
 
   return (
@@ -36,8 +43,12 @@ export function GameCard({
           <img
             src={game.header_image_url}
             alt={game.name}
-            className="absolute inset-0 size-full object-cover"
+            className={cn(
+              "absolute inset-0 size-full object-cover transition-opacity duration-200",
+              imageReady ? "opacity-100" : "opacity-0",
+            )}
             loading="lazy"
+            onLoad={() => setImageReady(true)}
             onError={() => setImageFailed(true)}
           />
         ) : game.is_pending_fetch ? (

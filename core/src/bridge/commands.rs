@@ -37,6 +37,17 @@ pub struct GameView {
     pub is_pending_fetch: bool,
 }
 
+/// Payload of the `game-metadata-updated` event. The frontend merges
+/// this directly into its React Query cache, avoiding an IPC roundtrip
+/// refetch through `list_games`.
+#[derive(Serialize, Clone)]
+struct MetadataUpdatePayload {
+    app_id: u32,
+    name: String,
+    header_image_url: String,
+    is_known: bool,
+}
+
 #[tauri::command]
 pub async fn list_games(
     handle: tauri::AppHandle,
@@ -114,34 +125,75 @@ pub async fn list_games(
             let cache_path = cache_path.clone();
             let handle = handle.clone();
             tokio::spawn(async move {
+                // Fan out fetches with bounded concurrency. Steam's appdetails
+                // endpoint is documented at 200 req/5min; in practice it
+                // tolerates short bursts well above that. 4 concurrent + a
+                // 250ms post-fetch pace keeps us comfortably below sustained
+                // limits for typical libraries (<40 apps) while letting the
+                // user see names + cover art populate in seconds rather than
+                // minutes. Cache writes and event emits are serialized via
+                // a channel so they can't race.
+                use std::sync::Arc;
+                use tokio::sync::{mpsc, Semaphore};
+                const CONCURRENCY: usize = 4;
+                const POST_FETCH_DELAY_MS: u64 = 250;
+
+                let sem = Arc::new(Semaphore::new(CONCURRENCY));
+                let (tx, mut rx) = mpsc::channel::<(u32, Option<GameMetadata>, bool)>(
+                    to_fetch.len().max(1),
+                );
                 for id in to_fetch {
-                    let result = crate::steam::metadata::fetch_one(&client, id).await;
-                    let entry = match result {
-                        Ok(Some(meta)) => meta,
-                        Ok(None) => GameMetadata {
-                            app_id: id,
-                            name: format!("App {id}"),
-                            header_image_url: crate::steam::metadata::header_image_url(id),
-                            is_known: false,
-                        },
-                        Err(_) => {
-                            // Transient failure — drop the in-progress flag so
-                            // a subsequent list_games can retry.
-                            in_progress.lock().unwrap().remove(&id);
-                            continue;
-                        }
-                    };
+                    let sem = sem.clone();
+                    let client = client.clone();
+                    let tx = tx.clone();
+                    tokio::spawn(async move {
+                        let _permit = sem.acquire().await.ok();
+                        let result = crate::steam::metadata::fetch_one(&client, id).await;
+                        let msg = match result {
+                            Ok(Some(meta)) => (id, Some(meta), false),
+                            Ok(None) => (id, None, false),
+                            Err(_) => (id, None, true), // transient — caller should retry
+                        };
+                        let _ = tx.send(msg).await;
+                        tokio::time::sleep(std::time::Duration::from_millis(POST_FETCH_DELAY_MS)).await;
+                    });
+                }
+                drop(tx);
+
+                while let Some((id, fetched, transient_err)) = rx.recv().await {
+                    if transient_err {
+                        // Drop the in-progress flag so a subsequent list_games
+                        // can retry this id.
+                        in_progress.lock().unwrap().remove(&id);
+                        continue;
+                    }
+                    let entry = fetched.unwrap_or_else(|| GameMetadata {
+                        app_id: id,
+                        name: format!("App {id}"),
+                        header_image_url: crate::steam::metadata::header_image_url(id),
+                        is_known: false,
+                    });
                     let mut cache = crate::steam::metadata::load_cache(&cache_path)
                         .unwrap_or_default();
-                    cache.insert(id, entry);
+                    cache.insert(id, entry.clone());
                     let _ = crate::steam::metadata::save_cache(&cache_path, &cache);
                     in_progress.lock().unwrap().remove(&id);
-                    // Push an event so the frontend can re-render immediately
-                    // instead of waiting for the next poll tick. Payload is
-                    // the appId; the frontend just needs to know "something
-                    // changed" and re-fetch list_games (cheap — reads cache).
-                    let _ = handle.emit("game-metadata-updated", id);
-                    tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+                    // Push the full update so the frontend can merge directly
+                    // into the React Query cache. The name is computed here
+                    // (matching the same logic list_games uses) so the UI can
+                    // display it the instant the event arrives — no waiting
+                    // for an IPC refetch roundtrip.
+                    let payload = MetadataUpdatePayload {
+                        app_id: id,
+                        name: if entry.is_known {
+                            entry.name.clone()
+                        } else {
+                            format!("Untitled · ID {id}")
+                        },
+                        header_image_url: entry.header_image_url.clone(),
+                        is_known: entry.is_known,
+                    };
+                    let _ = handle.emit("game-metadata-updated", payload);
                 }
             });
         }
