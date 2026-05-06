@@ -31,6 +31,10 @@ pub struct GameView {
     pub name: String,
     pub header_image_url: String,
     pub is_known: bool,
+    /// True iff this entry's metadata hasn't been fetched yet — the
+    /// frontend should render a spinner instead of the placeholder
+    /// glyph and keep polling until it flips false.
+    pub is_pending_fetch: bool,
 }
 
 #[tauri::command]
@@ -46,33 +50,97 @@ pub async fn list_games(
         .ok_or(AppError::SteamNotFound)?;
     let games = crate::steam::games::list_for_account(&install, steam_id_32)?;
     let cache_path = state.games_cache_path();
-    let mut cache = crate::steam::metadata::load_cache(&cache_path)?;
-    let ids: Vec<u32> = games.iter().map(|g| g.app_id).collect();
-    crate::steam::metadata::ensure_cached(&state.http, &cache_path, &mut cache, &ids).await?;
+    let cache = crate::steam::metadata::load_cache(&cache_path)?;
     let hide_untitled = state.settings.lock().unwrap().hide_untitled_apps;
-    Ok(games
+
+    // Build the response from whatever's currently in cache. Anything not
+    // in cache is returned as a pending placeholder — the user sees the
+    // tile + spinner immediately while the background task fetches.
+    let pending: Vec<u32> = games
+        .iter()
+        .filter(|g| !cache.contains_key(&g.app_id))
+        .map(|g| g.app_id)
+        .collect();
+    let pending_set: std::collections::HashSet<u32> = pending.iter().copied().collect();
+
+    let response: Vec<GameView> = games
         .into_iter()
-        .map(|g| {
+        .filter_map(|g| {
+            let is_pending = pending_set.contains(&g.app_id);
             let meta = cache.get(&g.app_id).cloned().unwrap_or_else(|| GameMetadata {
                 app_id: g.app_id,
                 name: format!("App {}", g.app_id),
                 header_image_url: crate::steam::metadata::header_image_url(g.app_id),
                 is_known: false,
             });
+            // Hide-untitled filter: only suppress confirmed-untitled entries.
+            // Pending entries stay visible so the user doesn't see a tile
+            // appear, then disappear, then maybe come back if the toggle flips.
+            if hide_untitled && !meta.is_known && !is_pending {
+                return None;
+            }
             let display_name = if meta.is_known {
                 meta.name.clone()
+            } else if is_pending {
+                String::new() // frontend shows a spinner; name is unused for pending tiles
             } else {
                 format!("Untitled · ID {}", meta.app_id)
             };
-            GameView {
+            Some(GameView {
                 game: g,
                 name: display_name,
                 header_image_url: meta.header_image_url,
                 is_known: meta.is_known,
-            }
+                is_pending_fetch: is_pending,
+            })
         })
-        .filter(|view| !hide_untitled || view.is_known)
-        .collect())
+        .collect();
+
+    // Spawn (or extend) the background metadata fetcher for any IDs that
+    // aren't already being fetched.
+    if !pending.is_empty() {
+        let in_progress = state.games_fetch_in_progress.clone();
+        let to_fetch: Vec<u32> = {
+            let mut guard = in_progress.lock().unwrap();
+            let new_ids: Vec<u32> = pending.into_iter().filter(|id| !guard.contains(id)).collect();
+            for id in &new_ids {
+                guard.insert(*id);
+            }
+            new_ids
+        };
+        if !to_fetch.is_empty() {
+            let client = state.http.clone();
+            let cache_path = cache_path.clone();
+            tokio::spawn(async move {
+                for id in to_fetch {
+                    let result = crate::steam::metadata::fetch_one(&client, id).await;
+                    let entry = match result {
+                        Ok(Some(meta)) => meta,
+                        Ok(None) => GameMetadata {
+                            app_id: id,
+                            name: format!("App {id}"),
+                            header_image_url: crate::steam::metadata::header_image_url(id),
+                            is_known: false,
+                        },
+                        Err(_) => {
+                            // Transient failure — drop the in-progress flag so
+                            // a subsequent list_games can retry.
+                            in_progress.lock().unwrap().remove(&id);
+                            continue;
+                        }
+                    };
+                    let mut cache = crate::steam::metadata::load_cache(&cache_path)
+                        .unwrap_or_default();
+                    cache.insert(id, entry);
+                    let _ = crate::steam::metadata::save_cache(&cache_path, &cache);
+                    in_progress.lock().unwrap().remove(&id);
+                    tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+                }
+            });
+        }
+    }
+
+    Ok(response)
 }
 
 #[tauri::command]

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/tauri-client";
 import type { TransferPair, TransferOutcome } from "@/types/domain";
@@ -18,7 +19,7 @@ export function TransferPage() {
     setSource, toggleTarget, toggleApp, reset,
   } = useTransferStore();
   const source = accounts.find((a) => a.steam_id_64 === sourceId);
-  const { data: games = [] } = useGames(source?.steam_id_32 ?? null);
+  const { data: games = [], isLoading: gamesLoading } = useGames(source?.steam_id_32 ?? null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [results, setResults] = useState<TransferOutcome[] | null>(null);
   const qc = useQueryClient();
@@ -122,7 +123,12 @@ export function TransferPage() {
         {source && (
           <div ref={gamesRef}>
             <Section title="Games" description="Click cards to select. Multi-select.">
-              {games.length === 0 ? (
+              {gamesLoading ? (
+                <p className="text-sm text-muted-foreground inline-flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin" />
+                  Scanning {source.display_name}'s game configs…
+                </p>
+              ) : games.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   {source.display_name} has no game configs on disk.
                 </p>

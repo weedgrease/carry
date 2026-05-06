@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { GameView } from "@/types/domain";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function fmtSize(n: number) {
@@ -40,6 +40,8 @@ export function GameCard({
             loading="lazy"
             onError={() => setImageFailed(true)}
           />
+        ) : game.is_pending_fetch ? (
+          <Loader2 className="size-8 text-muted-foreground animate-spin" />
         ) : (
           <HelpCircle className="size-10 text-muted-foreground" />
         )}
@@ -48,10 +50,19 @@ export function GameCard({
         </div>
       </div>
       <div className="p-3 space-y-1">
-        <div className="font-medium text-sm leading-tight truncate" title={game.name}>{game.name}</div>
-        <div className="text-xs text-muted-foreground">
-          {fmtSize(game.config_size_bytes)} · ID {game.app_id}
-        </div>
+        {game.is_pending_fetch ? (
+          <>
+            <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
+            <div className="h-3 w-1/2 rounded bg-muted/60 animate-pulse" />
+          </>
+        ) : (
+          <>
+            <div className="font-medium text-sm leading-tight truncate" title={game.name}>{game.name}</div>
+            <div className="text-xs text-muted-foreground">
+              {fmtSize(game.config_size_bytes)} · ID {game.app_id}
+            </div>
+          </>
+        )}
       </div>
     </Card>
   );

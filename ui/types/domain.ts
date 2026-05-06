@@ -17,6 +17,7 @@ export type GameView = {
   name: string;
   header_image_url: string;
   is_known: boolean;
+  is_pending_fetch: boolean;
 };
 
 export type BackupReason = "Manual" | "PreCopy" | "PreRestore" | "Source";
