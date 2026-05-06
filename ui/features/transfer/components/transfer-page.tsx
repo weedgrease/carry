@@ -1,16 +1,35 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/tauri-client";
-import type { TransferPair, TransferOutcome } from "@/types/domain";
+import type { GameView, TransferPair, TransferOutcome } from "@/types/domain";
 import { Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { useAccounts, AccountGrid } from "@/features/accounts";
 import { useGames, GameGrid } from "@/features/library";
 import { useTransferStore } from "../stores/transfer-store";
 import { TransferConfirmDialog } from "./transfer-confirm-dialog";
 import { TransferResultsDialog } from "./transfer-results-dialog";
+
+type SortKey = "recent" | "name";
+
+function sortGames(games: GameView[], key: SortKey): GameView[] {
+  if (key === "name") {
+    // Pending entries (empty name) sort to the end so the user sees real
+    // names alphabetised and skeletons at the tail.
+    return [...games].sort((a, b) => {
+      if (!a.name && b.name) return 1;
+      if (a.name && !b.name) return -1;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+    });
+  }
+  // "recent" — backend already returns games sorted by last_modified DESC.
+  return games;
+}
 
 export function TransferPage() {
   const { data: accounts = [] } = useAccounts();
@@ -20,6 +39,8 @@ export function TransferPage() {
   } = useTransferStore();
   const source = accounts.find((a) => a.steam_id_64 === sourceId);
   const { data: games = [], isLoading: gamesLoading } = useGames(source?.steam_id_32 ?? null);
+  const [sortBy, setSortBy] = useState<SortKey>("recent");
+  const sortedGames = useMemo(() => sortGames(games, sortBy), [games, sortBy]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [results, setResults] = useState<TransferOutcome[] | null>(null);
   const qc = useQueryClient();
@@ -122,7 +143,21 @@ export function TransferPage() {
 
         {source && (
           <div ref={gamesRef} className="scroll-mt-3">
-            <Section title="Games" description="Click cards to select. Multi-select.">
+            <Section
+              title="Games"
+              description="Click cards to select. Multi-select."
+              action={games.length > 0 ? (
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+                  <SelectTrigger className="h-8 w-44 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recent">Recently played</SelectItem>
+                    <SelectItem value="name">Name (A–Z)</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : undefined}
+            >
               {gamesLoading ? (
                 <p className="text-sm text-muted-foreground inline-flex items-center gap-2">
                   <Loader2 className="size-4 animate-spin" />
@@ -133,7 +168,7 @@ export function TransferPage() {
                   {source.display_name} has no game configs on disk.
                 </p>
               ) : (
-                <GameGrid games={games} selected={selectedAppIds} onToggle={toggleApp} />
+                <GameGrid games={sortedGames} selected={selectedAppIds} onToggle={toggleApp} />
               )}
             </Section>
           </div>
