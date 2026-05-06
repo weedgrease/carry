@@ -134,7 +134,11 @@ jobs:
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: true
           prerelease: false
-          includeUpdaterJson: true
+          # tauri-action 0.6.2's includeUpdaterJson is broken against Tauri 2's
+          # bundle layout (looks for sig in pre-Tauri-2 paths, then logs
+          # "Signature not found for the updater JSON. Skipping upload..."),
+          # so we generate latest.json + upload the updater payload manually
+          # in the next step instead.
           projectPath: .
 
       - name: Package portable .exe
@@ -157,3 +161,38 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "v${{ needs.prepare.outputs.version }}" "${{ steps.portable.outputs.path }}" --clobber
+
+      - name: Generate latest.json + attach updater payload
+        # Tauri's updater downloads the .nsis.zip (not the .exe installer)
+        # and verifies it against the signature in latest.json. Both need to
+        # be on the release for in-app updates to work.
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = "${{ needs.prepare.outputs.version }}"
+          $bundleDir = "core/target/release/bundle/nsis"
+          $zipFile = Get-ChildItem -Path $bundleDir -Filter "*-setup.nsis.zip" | Select-Object -First 1
+          if (-not $zipFile) {
+            Write-Error "Expected an NSIS updater .zip in $bundleDir but found none."
+            exit 1
+          }
+          $sigPath = "$($zipFile.FullName).sig"
+          if (-not (Test-Path $sigPath)) {
+            Write-Error "Expected $sigPath to exist alongside the .nsis.zip."
+            exit 1
+          }
+          $signature = (Get-Content $sigPath -Raw).Trim()
+          $url = "https://github.com/weedgrease/carry/releases/download/v${version}/$($zipFile.Name)"
+          $manifest = [ordered]@{
+            version = $version
+            pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+            platforms = [ordered]@{
+              "windows-x86_64" = [ordered]@{
+                signature = $signature
+                url = $url
+              }
+            }
+          }
+          $manifest | ConvertTo-Json -Depth 4 | Set-Content -Path "latest.json" -Encoding utf8
+          gh release upload "v$version" $zipFile.FullName "latest.json" --clobber
