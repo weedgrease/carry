@@ -11,6 +11,9 @@ impl SteamInstall {
     pub fn config_dir(&self) -> PathBuf { self.root.join("config") }
     pub fn avatar_cache_dir(&self) -> PathBuf { self.config_dir().join("avatarcache") }
     pub fn loginusers_vdf(&self) -> PathBuf { self.config_dir().join("loginusers.vdf") }
+    pub fn localconfig_vdf(&self, steam_id_32: u32) -> PathBuf {
+        self.userdata_dir().join(steam_id_32.to_string()).join("config/localconfig.vdf")
+    }
 }
 
 pub fn validate_steam_root(p: &Path) -> AppResult<SteamInstall> {

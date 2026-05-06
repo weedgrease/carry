@@ -25,6 +25,16 @@ pub struct GameRef {
 pub fn list_for_account(install: &SteamInstall, steam_id_32: u32) -> AppResult<Vec<GameRef>> {
     let account_dir = install.userdata_dir().join(steam_id_32.to_string());
     if !account_dir.is_dir() { return Ok(Vec::new()); }
+
+    // Steam tracks per-app LastPlayed in localconfig.vdf. That's the real
+    // "recently played" signal — using config-dir mtime as a proxy is wrong
+    // because Steam Cloud sync, remotecache.vdf rewrites on Steam exit, and
+    // unrelated config touches all bump it without the user actually
+    // launching the game.
+    let last_played = crate::steam::vdf::parse_localconfig_last_played(
+        &install.localconfig_vdf(steam_id_32),
+    ).unwrap_or_default();
+
     let mut games = Vec::new();
     for entry in std::fs::read_dir(&account_dir)? {
         let entry = entry?;
@@ -34,12 +44,15 @@ pub fn list_for_account(install: &SteamInstall, steam_id_32: u32) -> AppResult<V
         let app_id: u32 = match s.parse() { Ok(v) if v > 0 => v, _ => continue };
         if STEAM_INTERNAL_APP_IDS.contains(&app_id) { continue; }
         let path = entry.path();
-        let (size, modified) = dir_stats(&path)?;
+        let (size, mtime) = dir_stats(&path)?;
+        // Prefer Steam's tracked LastPlayed; fall back to file mtime so games
+        // never launched (yet still have userdata) still get an ordering.
+        let last_modified = last_played.get(&app_id).copied().or(mtime);
         games.push(GameRef {
             app_id,
             config_path: path,
             config_size_bytes: size,
-            last_modified: modified,
+            last_modified,
         });
     }
     games.sort_by(|a, b| b.last_modified.cmp(&a.last_modified));
