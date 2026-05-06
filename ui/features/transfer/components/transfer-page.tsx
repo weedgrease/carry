@@ -121,7 +121,7 @@ export function TransferPage() {
         </Section>
 
         {source && (
-          <div ref={gamesRef}>
+          <div ref={gamesRef} className="scroll-mt-8">
             <Section title="Games" description="Click cards to select. Multi-select.">
               {gamesLoading ? (
                 <p className="text-sm text-muted-foreground inline-flex items-center gap-2">
@@ -140,7 +140,7 @@ export function TransferPage() {
         )}
 
         {source && selectedAppIds.size > 0 && (
-          <div ref={targetsRef}>
+          <div ref={targetsRef} className="scroll-mt-8">
             <Section title="Copy to" description="One or more targets. Source is hidden.">
               <AccountGrid
                 mode="multi"
