@@ -19,7 +19,8 @@
         "minHeight": 600,
         "decorations": false,
         "theme": null,
-        "backgroundColor": "#252525"
+        "backgroundColor": "#252525",
+        "center": true
       }
     ],
     "security": {
