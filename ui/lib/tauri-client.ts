@@ -15,6 +15,17 @@ function unwrap<T>(p: Promise<T>): Promise<T> {
   });
 }
 
+/** Pull a user-facing string out of an unknown thrown value (AppError, Error, anything). */
+export function toErrorMessage(e: unknown, fallback = "Something went wrong"): string {
+  if (
+    typeof e === "object" && e !== null
+    && "message" in e && typeof (e as { message: unknown }).message === "string"
+  ) {
+    return (e as { message: string }).message;
+  }
+  return fallback;
+}
+
 /** Typed facade over `invoke()` for every Tauri command, with normalized errors. */
 export const api = {
   listAccounts: () => unwrap(invoke<Account[]>("list_accounts")),

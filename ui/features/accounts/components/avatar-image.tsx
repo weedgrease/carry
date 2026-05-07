@@ -18,14 +18,18 @@ export function AvatarImageBlock({
   fallback: string;
   className?: string;
 }) {
-  const [src, setSrc] = useState<string | null>(
-    initialPath ? convertFileSrc(initialPath) : null
-  );
+  // Drive the local-file src off props so a refetch that flips
+  // `initialPath` from null to a real path actually swaps the image.
+  // `useState`'s initialiser only runs on first mount, so we'd otherwise
+  // be stuck on the first render's value forever.
+  const localSrc = initialPath ? convertFileSrc(initialPath) : null;
+  const [fetched, setFetched] = useState<string | null>(null);
+  const src = localSrc ?? fetched;
   useEffect(() => {
     if (src) return;
     let alive = true;
     api.ensureAvatar(steamId64)
-      .then((path) => alive && setSrc(convertFileSrc(path)))
+      .then((path) => alive && setFetched(convertFileSrc(path)))
       .catch(() => {});
     return () => { alive = false; };
   }, [steamId64, src]);

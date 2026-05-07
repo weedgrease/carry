@@ -1,13 +1,13 @@
 import { Minus, Square, X } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { toast } from "sonner";
+import { toErrorMessage } from "@/lib/tauri-client";
 
 async function runWindowAction(label: string, fn: () => Promise<void>) {
   try {
     await fn();
   } catch (e) {
-    const msg = (e as { message?: string }).message ?? String(e);
-    toast.error(`${label} failed: ${msg}`);
+    toast.error(`${label} failed: ${toErrorMessage(e)}`);
   }
 }
 

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Section } from "@/components/layout/section";
 import { useSettings, useUpdateSettings } from "../api/queries";
-import { api } from "@/lib/tauri-client";
+import { api, toErrorMessage } from "@/lib/tauri-client";
 import { useTheme } from "@/app/providers/theme-provider";
 
 /** Settings page: Steam path override, retention, hide-untitled, theme. */
@@ -47,7 +47,7 @@ export function SettingsPage() {
       hide_untitled_apps: hideUntitled,
     }, {
       onSuccess: () => toast.success("Settings saved"),
-      onError: (e: { message: string }) => toast.error(e.message),
+      onError: (e) => toast.error(toErrorMessage(e)),
     });
   };
 
@@ -56,7 +56,7 @@ export function SettingsPage() {
       const picked = await api.pickSteamPath();
       if (picked) setSteamPath(picked);
     } catch (e: unknown) {
-      toast.error((e as { message: string }).message);
+      toast.error(toErrorMessage(e));
     }
   };
 
@@ -133,7 +133,7 @@ export function SettingsPage() {
                       queryClient.removeQueries({ queryKey: ["games"] });
                       toast.success("Game cache cleared. Names + images will refetch on next visit.");
                     })
-                    .catch((e: { message: string }) => toast.error(e.message));
+                    .catch((e) => toast.error(toErrorMessage(e)));
                 }}
               >
                 Clear cached game names + images

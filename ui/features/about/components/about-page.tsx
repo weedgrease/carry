@@ -4,7 +4,7 @@ import { open } from "@tauri-apps/plugin-shell";
 import { toast } from "sonner";
 import { Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/tauri-client";
+import { api, toErrorMessage } from "@/lib/tauri-client";
 
 /** About page: app version, project links, and a manual update-check button. */
 export function AboutPage() {
@@ -31,8 +31,8 @@ export function AboutPage() {
       } else {
         toast.success("You're on the latest version.");
       }
-    } catch (e: unknown) {
-      toast.error((e as { message: string }).message ?? "Update check failed");
+    } catch (e) {
+      toast.error(toErrorMessage(e, "Update check failed"));
     } finally {
       setChecking(false);
     }

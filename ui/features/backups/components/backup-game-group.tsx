@@ -1,13 +1,7 @@
 import type { BackupRecord } from "@/types/domain";
 import { Badge } from "@/components/ui/badge";
+import { formatBytes } from "@/lib/format";
 import { BackupRowActions } from "./backup-row-actions";
-
-function fmtBytes(n: number) {
-  if (n < 1024) return `${n} B`;
-  const u = ["KB", "MB", "GB"]; let v = n / 1024, i = 0;
-  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
-  return `${v.toFixed(1)} ${u[i]}`;
-}
 
 /** Header image, name, and table of backup rows for one game. */
 export function BackupGameGroup({
@@ -54,7 +48,7 @@ export function BackupGameGroup({
               </Badge>
             </div>
             <div className="text-right font-mono text-muted-foreground">
-              {fmtBytes(r.size_bytes)}
+              {formatBytes(r.size_bytes)}
             </div>
             <div className="flex justify-end">
               <BackupRowActions record={r} />

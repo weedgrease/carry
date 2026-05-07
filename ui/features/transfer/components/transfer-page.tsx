@@ -99,10 +99,16 @@ export function TransferPage() {
     targetIds.size > 0;
   const ready = !!source && selectedAppIds.size > 0 && targetIds.size > 0;
 
-  // If the previously-selected source no longer exists (e.g. Steam path
-  // changed), drop the stale selection and restart the wizard.
+  // Keep the wizard in a consistent state. If sourceId is missing, force
+  // step back to "source" — a Settings round-trip that flushes queries
+  // can otherwise leave step wedged on "games" with nothing to render.
+  // If sourceId is set but the account is gone, reset everything.
   useEffect(() => {
-    if (sourceId && accounts.length > 0 && !source) {
+    if (!sourceId) {
+      setStep("source");
+      return;
+    }
+    if (accounts.length > 0 && !source) {
       reset();
       setStep("source");
     }
