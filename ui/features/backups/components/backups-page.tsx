@@ -70,7 +70,7 @@ export function BackupsPage() {
   }, [selectedId]);
 
   return (
-    <div ref={scrollRef} className="h-full overflow-y-auto px-5 py-5">
+    <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-4">
       <Section title="Account" description="Pick an account to view its backups">
         {accounts.length === 0 ? (
           <p className="text-sm text-muted-foreground">

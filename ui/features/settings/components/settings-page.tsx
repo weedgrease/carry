@@ -63,7 +63,7 @@ export function SettingsPage() {
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="mx-auto max-w-2xl px-5 py-5">
+        <div className="mx-auto max-w-2xl px-4 py-4">
           <Section title="Steam install path" description="Override the auto-detected folder">
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
@@ -154,7 +154,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="border-t bg-background/95 backdrop-blur px-5 py-5 flex items-center justify-end gap-4">
+      <div className="border-t bg-background/95 backdrop-blur px-4 py-4 flex items-center justify-end gap-4">
         <Button onClick={save} disabled={update.isPending}>
           {update.isPending ? "Saving..." : "Save"}
         </Button>

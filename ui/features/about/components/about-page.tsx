@@ -38,7 +38,7 @@ export function AboutPage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto px-5 py-5">
+    <div className="h-full overflow-y-auto px-4 py-4">
       <div className="mx-auto max-w-2xl">
         <Section title="carry">
           <div className="space-y-3">
