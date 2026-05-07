@@ -197,7 +197,7 @@ export function TransferPage() {
         )}
       </div>
 
-      <div className="border-t bg-background/95 backdrop-blur px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+      <div className="border-t bg-background/95 backdrop-blur px-6 py-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <p className="text-sm text-muted-foreground sm:flex-1">
           <span className="font-semibold text-foreground">{stepLabelText}</span> · {stepDesc}
         </p>

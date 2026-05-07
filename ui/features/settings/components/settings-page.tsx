@@ -154,7 +154,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center justify-end gap-4">
+      <div className="border-t bg-background/95 backdrop-blur px-6 py-6 flex items-center justify-end gap-4">
         <Button onClick={save} disabled={update.isPending}>
           {update.isPending ? "Saving..." : "Save"}
         </Button>
