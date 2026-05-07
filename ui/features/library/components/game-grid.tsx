@@ -8,7 +8,7 @@ export function GameGrid({
     return <div className="text-sm text-muted-foreground p-6">No game configs found for this account.</div>;
   }
   return (
-    <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
       {games.map((g) => (
         <GameCard
           key={g.app_id}

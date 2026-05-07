@@ -9,19 +9,21 @@ export function Section({
   children,
 }: {
   title: string;
-  description?: string;
+  description?: ReactNode;
   action?: ReactNode;
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <section className={cn("mb-8", className)}>
-      <header className="flex items-baseline gap-3 mb-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wider">{title}</h2>
+    <section className={cn("mb-8 last:mb-0", className)}>
+      <header className="mb-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider">{title}</h2>
+          {action && <div className="ml-auto">{action}</div>}
+        </div>
         {description && (
-          <p className="text-xs text-muted-foreground flex-1">· {description}</p>
+          <p className="text-xs text-muted-foreground mt-1">{description}</p>
         )}
-        {action && <div className="ml-auto">{action}</div>}
       </header>
       {children}
     </section>

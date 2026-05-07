@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { BackupReason } from "@/types/domain";
 import { Section } from "@/components/layout/section";
 import {
@@ -65,8 +65,20 @@ export function BackupsPage() {
     ? `${totalForSelected} backup${totalForSelected === 1 ? "" : "s"} across ${groups.length} game${groups.length === 1 ? "" : "s"}`
     : "";
 
+  // Scroll to the backups section when an account is picked so the user
+  // doesn't have to manually scroll past the account grid.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const backupsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (selectedId && backupsRef.current) {
+      requestAnimationFrame(() => {
+        backupsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, [selectedId]);
+
   return (
-    <div className="h-full overflow-y-auto px-6 py-6">
+    <div ref={scrollRef} className="h-full overflow-y-auto px-6 py-6">
       <Section title="Account" description="Pick an account to view its backups">
         {accounts.length === 0 ? (
           <p className="text-sm text-muted-foreground">
@@ -84,6 +96,7 @@ export function BackupsPage() {
       </Section>
 
       {selectedAccount && (
+        <div ref={backupsRef} className="scroll-mt-3">
         <Section
           title={`Backups for ${selectedAccount.display_name}`}
           description={description}
@@ -120,6 +133,7 @@ export function BackupsPage() {
             </div>
           )}
         </Section>
+        </div>
       )}
     </div>
   );

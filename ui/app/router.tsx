@@ -9,6 +9,9 @@ const BackupsPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import("@/features/settings/components/settings-page").then((m) => ({ default: m.SettingsPage }))
 );
+const AboutPage = lazy(() =>
+  import("@/features/about/components/about-page").then((m) => ({ default: m.AboutPage }))
+);
 
 function withSuspense(Component: ComponentType) {
   return (
@@ -26,6 +29,7 @@ const router = createBrowserRouter([
       { index: true, Component: TransferPage },
       { path: "backups", element: withSuspense(BackupsPage) },
       { path: "settings", element: withSuspense(SettingsPage) },
+      { path: "about", element: withSuspense(AboutPage) },
     ],
   },
 ]);

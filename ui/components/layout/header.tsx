@@ -7,6 +7,7 @@ const links = [
   { to: "/", label: "Transfer", end: true },
   { to: "/backups", label: "Backups" },
   { to: "/settings", label: "Settings" },
+  { to: "/about", label: "About" },
 ];
 
 export function Header() {

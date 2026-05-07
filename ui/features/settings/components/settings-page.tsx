@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { getVersion } from "@tauri-apps/api/app";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -22,7 +21,6 @@ export function SettingsPage() {
   const [steamPath, setSteamPath] = useState("");
   const [retention, setRetention] = useState(20);
   const [hideUntitled, setHideUntitled] = useState(true);
-  const [version, setVersion] = useState<string | null>(null);
 
   useEffect(() => {
     if (settings) {
@@ -31,10 +29,6 @@ export function SettingsPage() {
       setHideUntitled(settings.hide_untitled_apps);
     }
   }, [settings]);
-
-  useEffect(() => {
-    getVersion().then(setVersion).catch(() => {});
-  }, []);
 
   const save = () => {
     if (!settings) return;
@@ -136,23 +130,14 @@ export function SettingsPage() {
               </SelectContent>
             </Select>
           </Section>
-
-          <div className="flex justify-end border-t pt-4 mt-2">
-            <Button onClick={save} disabled={update.isPending}>Save</Button>
-          </div>
         </div>
       </div>
 
-      {version && (
-        <div className="border-t py-2.5 space-y-0.5">
-          <p className="text-xs text-muted-foreground text-center">
-            carry v{version}
-          </p>
-          <p className="text-xs text-muted-foreground text-center">
-            Maintained by Kevin, Noah, and Bart
-          </p>
-        </div>
-      )}
+      <div className="border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center justify-end gap-4">
+        <Button onClick={save} disabled={update.isPending}>
+          {update.isPending ? "Saving..." : "Save"}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -78,20 +78,27 @@ export function TransferPage() {
     return pairs;
   };
 
-  const status = (() => {
+  const stepLabel = (n: number) => (
+    <span className="font-semibold text-foreground">Step {n} of 3</span>
+  );
+  const status = ((): ReactNode => {
     if (step === "source") {
-      return source
-        ? `Step 1 of 3 · From ${source.display_name}.`
-        : "Step 1 of 3 · Pick the account to copy from.";
+      return (
+        <>
+          {stepLabel(1)} · {source ? `From ${source.display_name}.` : "Pick the account to copy from."}
+        </>
+      );
     }
     if (step === "games") {
       const n = selectedAppIds.size;
-      return n === 0
-        ? "Step 2 of 3 · Pick games to copy. Multi-select supported."
-        : `Step 2 of 3 · ${n} game${n === 1 ? "" : "s"} selected.`;
+      return (
+        <>
+          {stepLabel(2)} · {n === 0 ? "Pick games to copy. Multi-select supported." : `${n} game${n === 1 ? "" : "s"} selected.`}
+        </>
+      );
     }
     // step === "targets"
-    if (targetIds.size === 0) return "Step 3 of 3 · Pick destination accounts.";
+    if (targetIds.size === 0) return <>{stepLabel(3)} · Pick destination accounts.</>;
     const pairs = selectedAppIds.size * targetIds.size;
     return `${selectedAppIds.size} game${selectedAppIds.size === 1 ? "" : "s"} → ${targetIds.size} account${targetIds.size === 1 ? "" : "s"} · up to ${pairs} configs will be auto-backed-up.`;
   })();
