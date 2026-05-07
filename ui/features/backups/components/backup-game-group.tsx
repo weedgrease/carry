@@ -21,7 +21,7 @@ export function BackupGameGroup({
   records: BackupRecord[];
 }) {
   return (
-    <div className="mb-5">
+    <div className="mb-5 last:mb-0">
       <div className="flex items-center gap-3 mb-2">
         {headerUrl ? (
           <img

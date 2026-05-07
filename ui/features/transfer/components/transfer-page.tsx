@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -78,29 +78,22 @@ export function TransferPage() {
     return pairs;
   };
 
-  const stepLabel = (n: number) => (
-    <span className="font-semibold text-foreground">Step {n} of 3</span>
-  );
-  const status = ((): ReactNode => {
+  // Split into two parts so the footer can either join them with " · " on
+  // wider viewports OR put the label on the left and the description on
+  // the right with justify-between when narrow.
+  const stepNum = step === "source" ? 1 : step === "games" ? 2 : 3;
+  const stepLabelText = `Step ${stepNum} of 3`;
+  const stepDesc = ((): string => {
     if (step === "source") {
-      return (
-        <>
-          {stepLabel(1)} · {source ? `From ${source.display_name}.` : "Pick the account to copy from."}
-        </>
-      );
+      return source ? `From ${source.display_name}.` : "Pick the account to copy from.";
     }
     if (step === "games") {
       const n = selectedAppIds.size;
-      return (
-        <>
-          {stepLabel(2)} · {n === 0 ? "Pick games to copy." : `${n} game${n === 1 ? "" : "s"} selected.`}
-        </>
-      );
+      return n === 0 ? "Pick games to copy." : `${n} game${n === 1 ? "" : "s"} selected.`;
     }
-    // step === "targets"
-    if (targetIds.size === 0) return <>{stepLabel(3)} · Pick destination accounts.</>;
+    if (targetIds.size === 0) return "Pick destination accounts.";
     const pairs = selectedAppIds.size * targetIds.size;
-    return `${selectedAppIds.size} game${selectedAppIds.size === 1 ? "" : "s"} → ${targetIds.size} account${targetIds.size === 1 ? "" : "s"} · up to ${pairs} configs will be auto-backed-up.`;
+    return `${selectedAppIds.size}→${targetIds.size}, ${pairs} config${pairs === 1 ? "" : "s"}.`;
   })();
 
   const canAdvance =
@@ -205,25 +198,36 @@ export function TransferPage() {
       </div>
 
       <div className="border-t bg-background/95 backdrop-blur px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        <p className="text-sm text-muted-foreground sm:flex-1">{status}</p>
-        <div className="flex items-center justify-end gap-2 sm:gap-4">
+        {/* Narrow: label and description on opposite sides. */}
+        <div className="flex items-center justify-between gap-3 text-sm sm:hidden">
+          <span className="font-semibold text-foreground">{stepLabelText}</span>
+          <span className="text-muted-foreground text-right truncate">{stepDesc}</span>
+        </div>
+        {/* Wide: combined sentence. */}
+        <p className="hidden sm:block sm:flex-1 text-sm text-muted-foreground">
+          <span className="font-semibold text-foreground">{stepLabelText}</span> · {stepDesc}
+        </p>
+        {/* Buttons: Reset on far left at narrow, far right at wide. */}
+        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
           <Button variant="ghost" onClick={handleReset} disabled={mutation.isPending}>
             Reset
           </Button>
-          {step !== "source" && (
-            <Button variant="outline" onClick={goBack} disabled={mutation.isPending}>
-              ← Back
-            </Button>
-          )}
-          {step !== "targets" ? (
-            <Button onClick={goNext} disabled={!canAdvance || mutation.isPending}>
-              Next →
-            </Button>
-          ) : (
-            <Button onClick={() => setConfirmOpen(true)} disabled={!ready || mutation.isPending}>
-              {mutation.isPending ? "Transferring..." : "Transfer →"}
-            </Button>
-          )}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {step !== "source" && (
+              <Button variant="outline" onClick={goBack} disabled={mutation.isPending}>
+                ← Back
+              </Button>
+            )}
+            {step !== "targets" ? (
+              <Button onClick={goNext} disabled={!canAdvance || mutation.isPending}>
+                Next →
+              </Button>
+            ) : (
+              <Button onClick={() => setConfirmOpen(true)} disabled={!ready || mutation.isPending}>
+                {mutation.isPending ? "Transferring..." : "Transfer →"}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
