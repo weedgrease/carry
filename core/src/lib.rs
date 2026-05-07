@@ -14,6 +14,9 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        // Persist window position/size/maximized between launches. Falls back
+        // to the defaults in tauri.conf.json on first run.
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()
                 .expect("resolve app data directory (check Windows AppData ACLs)");
