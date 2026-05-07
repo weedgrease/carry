@@ -134,7 +134,7 @@ export function TransferPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-5 py-5">
         {step === "source" && (
           <Section title="Source" description="Pick the account you want to copy from">
             {accounts.length === 0 ? (
@@ -197,7 +197,7 @@ export function TransferPage() {
         )}
       </div>
 
-      <div className="border-t bg-background/95 backdrop-blur px-6 py-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+      <div className="border-t bg-background/95 backdrop-blur px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <p className="text-sm text-muted-foreground sm:flex-1">
           <span className="font-semibold text-foreground">{stepLabelText}</span> · {stepDesc}
         </p>

@@ -5,6 +5,8 @@
     <link rel="icon" type="image/png" href="/icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
+      // Set the .dark class before paint so the body bg + spinner below
+      // pick up the right theme on the very first frame, no flash.
       (function () {
         try {
           var stored = localStorage.getItem("carry.theme");
@@ -17,11 +19,47 @@
         } catch (e) {}
       })();
     </script>
+    <style>
+      /* Inline so it takes effect before the bundled CSS arrives. The
+         oklch values mirror --background in globals.css. */
+      html, body { margin: 0; padding: 0; height: 100%; }
+      body {
+        background: oklch(1 0 0);
+        color: oklch(0.145 0 0);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      html.dark body {
+        background: oklch(0.145 0 0);
+        color: oklch(0.985 0 0);
+      }
+      #root { height: 100%; }
+      /* Loading shell — visible until React's first commit replaces #root. */
+      .app-loader {
+        position: fixed; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .app-loader__spinner {
+        width: 28px; height: 28px;
+        border: 2.5px solid oklch(0.92 0 0);
+        border-top-color: oklch(0.5 0 0);
+        border-radius: 50%;
+        animation: app-spin 0.7s linear infinite;
+      }
+      html.dark .app-loader__spinner {
+        border-color: oklch(0.27 0 0);
+        border-top-color: oklch(0.7 0 0);
+      }
+      @keyframes app-spin { to { transform: rotate(360deg); } }
+    </style>
     <title>carry</title>
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="app-loader">
+        <div class="app-loader__spinner"></div>
+      </div>
+    </div>
     <script type="module" src="/ui/main.tsx"></script>
   </body>
 </html>
