@@ -63,7 +63,7 @@ pub async fn list_games(
         .ok_or(AppError::SteamNotFound)?;
     let games = crate::steam::games::list_for_account(&install, steam_id_32)?;
     let cache_path = state.games_cache_path();
-    let cache = crate::steam::metadata::load_cache(&cache_path)?;
+    let cache = state.games_cache.lock().unwrap().clone();
     let hide_untitled = state.settings.lock().unwrap().hide_untitled_apps;
 
     // Cache misses are returned as pending placeholders so tiles render
@@ -121,6 +121,7 @@ pub async fn list_games(
             let client = state.http.clone();
             let cache_path = cache_path.clone();
             let handle = handle.clone();
+            let games_cache = state.games_cache.clone();
             tokio::spawn(async move {
                 // Steam's appdetails is documented at 200 req/5min but tolerates
                 // short bursts; 4 concurrent + 250ms post-fetch pace keeps us
@@ -166,10 +167,14 @@ pub async fn list_games(
                         header_image_url: crate::steam::metadata::header_image_url(id),
                         is_known: false,
                     });
-                    let mut cache = crate::steam::metadata::load_cache(&cache_path)
-                        .unwrap_or_default();
-                    cache.insert(id, entry.clone());
-                    let _ = crate::steam::metadata::save_cache(&cache_path, &cache);
+                    // Single shared cache + persist atomically — concurrent
+                    // list_games calls can't race on the JSON file.
+                    let snapshot = {
+                        let mut guard = games_cache.lock().unwrap();
+                        guard.insert(id, entry.clone());
+                        guard.clone()
+                    };
+                    let _ = crate::steam::metadata::save_cache(&cache_path, &snapshot);
                     in_progress.lock().unwrap().remove(&id);
                     // Display name is computed here (mirroring list_games) so
                     // the UI can render the instant the event arrives.
@@ -194,6 +199,7 @@ pub async fn list_games(
 
 #[tauri::command]
 pub async fn clear_games_cache(state: State<'_, AppState>) -> AppResult<()> {
+    state.games_cache.lock().unwrap().clear();
     let path = state.games_cache_path();
     if path.exists() {
         std::fs::remove_file(&path)?;
@@ -219,16 +225,37 @@ pub async fn ensure_avatar(
     crate::steam::avatars::fetch_remote_avatar(&state.http, &steam_id_64, &avatars_dir).await
 }
 
+/// Confine `path` to one of the known app-managed roots before any FS operation.
+/// Defends against the frontend (or a future webview compromise) handing in
+/// arbitrary system paths.
+fn confine_to_roots(path: &std::path::Path, roots: &[PathBuf]) -> AppResult<PathBuf> {
+    let canonical = std::fs::canonicalize(path)
+        .map_err(|_| AppError::PathMissing(path.to_path_buf()))?;
+    for root in roots {
+        if let Ok(canonical_root) = std::fs::canonicalize(root) {
+            if canonical.starts_with(&canonical_root) {
+                return Ok(canonical);
+            }
+        }
+    }
+    Err(AppError::PathMissing(path.to_path_buf()))
+}
+
 #[tauri::command]
-pub async fn open_path_in_explorer(path: PathBuf) -> AppResult<()> {
+pub async fn open_path_in_explorer(state: State<'_, AppState>, path: PathBuf) -> AppResult<()> {
+    let roots = [state.backups_root(), state.data_dir.join("avatars")];
+    let install = state.steam.lock().unwrap().clone();
+    let mut allowed: Vec<PathBuf> = roots.into_iter().collect();
+    if let Some(i) = install { allowed.push(i.userdata_dir()); }
+    let safe = confine_to_roots(&path, &allowed)?;
     #[cfg(target_os = "windows")]
     {
-        std::process::Command::new("explorer").arg(path).spawn()?;
+        std::process::Command::new("explorer").arg(safe).spawn()?;
         return Ok(());
     }
     #[cfg(not(target_os = "windows"))]
     {
-        let _ = path;
+        let _ = safe;
         Ok(())
     }
 }
@@ -272,8 +299,12 @@ pub async fn create_manual_backup(
 }
 
 #[tauri::command]
-pub async fn delete_backup(archive_path: PathBuf) -> AppResult<()> {
-    std::fs::remove_file(archive_path)?;
+pub async fn delete_backup(state: State<'_, AppState>, archive_path: PathBuf) -> AppResult<()> {
+    let safe = confine_to_roots(&archive_path, &[state.backups_root()])?;
+    if safe.extension().and_then(|s| s.to_str()) != Some("zip") {
+        return Err(AppError::PathMissing(archive_path));
+    }
+    std::fs::remove_file(&safe)?;
     Ok(())
 }
 
@@ -312,14 +343,15 @@ pub async fn restore_backup(
         .unwrap()
         .clone()
         .ok_or(AppError::SteamNotFound)?;
-    let manifest = crate::archive::list::read_manifest(&archive_path)?;
-    let size = std::fs::metadata(&archive_path).map(|m| m.len()).unwrap_or(0);
+    let backup_root = state.backups_root();
+    let safe_archive = confine_to_roots(&archive_path, &[backup_root.clone()])?;
+    let manifest = crate::archive::list::read_manifest(&safe_archive)?;
+    let size = std::fs::metadata(&safe_archive).map(|m| m.len()).unwrap_or(0);
     let record = BackupRecord {
-        archive_path,
+        archive_path: safe_archive,
         size_bytes: size,
         manifest,
     };
-    let backup_root = state.backups_root();
     crate::archive::restore::restore(&install, &record, target_steam_id_32, &backup_root)
 }
 
@@ -346,12 +378,11 @@ pub async fn update_settings(state: State<'_, AppState>, settings: Settings) -> 
 #[tauri::command]
 pub async fn pick_steam_path(handle: tauri::AppHandle) -> AppResult<Option<PathBuf>> {
     use tauri_plugin_dialog::DialogExt;
-    let (tx, rx) = std::sync::mpsc::channel();
+    let (tx, rx) = tokio::sync::oneshot::channel();
     handle.dialog().file().pick_folder(move |p| {
         let _ = tx.send(p);
     });
-    let chosen = rx.recv().ok().flatten();
-    Ok(chosen.and_then(|p| p.into_path().ok()))
+    Ok(rx.await.ok().flatten().and_then(|p| p.into_path().ok()))
 }
 
 #[derive(Serialize)]

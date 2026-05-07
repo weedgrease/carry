@@ -100,11 +100,6 @@ pub async fn fetch_remote_avatar(
     Ok(dest)
 }
 
-/// Local-only avatar lookup. Alias for [`local_avatar`] kept for naming symmetry.
-pub fn resolve(install: &SteamInstall, steam_id_64: &str) -> Option<PathBuf> {
-    local_avatar(install, steam_id_64)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -19,8 +19,9 @@ pub fn prune_for_pair(
     let auto: Vec<&BackupRecord> = records.iter()
         .filter(|r| r.manifest.reason != BackupReason::Manual)
         .collect();
-    let to_delete: Vec<BackupRecord> = if (auto.len() as u32) > keep {
-        auto.iter().skip(keep as usize).map(|r| (*r).clone()).collect()
+    let keep = keep as usize;
+    let to_delete: Vec<BackupRecord> = if auto.len() > keep {
+        auto.iter().skip(keep).map(|r| (*r).clone()).collect()
     } else { Vec::new() };
     for r in &to_delete { delete(r)?; }
     records.retain(|r| !to_delete.iter().any(|d| d.archive_path == r.archive_path));

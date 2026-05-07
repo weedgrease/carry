@@ -3,8 +3,7 @@
 use crate::error::AppResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::path::Path;
 
 /// Cached metadata for one app. `is_known=false` means appdetails returned no
 /// store entry (typical for internal/private apps).
@@ -110,44 +109,6 @@ pub async fn fetch_one(client: &reqwest::Client, app_id: u32) -> AppResult<Optio
             None
         }
     }))
-}
-
-/// Fetch and cache any `app_ids` not already present, paced for the
-/// appdetails rate limit (~200 req/5min).
-pub async fn ensure_cached(
-    client: &reqwest::Client,
-    cache_path: &PathBuf,
-    cache: &mut HashMap<u32, GameMetadata>,
-    app_ids: &[u32],
-) -> AppResult<()> {
-    let missing: Vec<u32> = app_ids
-        .iter()
-        .copied()
-        .filter(|id| !cache.contains_key(id))
-        .collect();
-    for id in missing {
-        match fetch_one(client, id).await {
-            Ok(Some(meta)) => {
-                cache.insert(id, meta);
-            }
-            Ok(None) => {
-                cache.insert(
-                    id,
-                    GameMetadata {
-                        app_id: id,
-                        name: format!("App {id}"),
-                        header_image_url: header_image_url(id),
-                        is_known: false,
-                    },
-                );
-            }
-            Err(_) => continue,
-        }
-        // 1500ms keeps us under appdetails' 200 req/5min budget.
-        tokio::time::sleep(Duration::from_millis(1500)).await;
-    }
-    save_cache(cache_path, cache)?;
-    Ok(())
 }
 
 #[cfg(test)]

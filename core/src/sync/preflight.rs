@@ -14,12 +14,6 @@ pub fn is_steam_running() -> bool {
     })
 }
 
-/// Errors with `SteamRunning` if Steam is currently running. Currently unused
-/// in the transfer/restore paths but kept for future soft-warning use.
-pub fn ensure_steam_not_running() -> AppResult<()> {
-    if is_steam_running() { Err(AppError::SteamRunning) } else { Ok(()) }
-}
-
 /// Recursive byte size of `p`'s file contents.
 pub fn dir_size(p: &Path) -> u64 {
     let mut total = 0u64;

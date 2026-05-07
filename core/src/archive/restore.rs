@@ -6,7 +6,6 @@ use crate::archive::manifest::{BackupReason, MANIFEST_FILENAME};
 use crate::error::{AppError, AppResult};
 use crate::steam::install::SteamInstall;
 use std::fs::File;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 
 /// Restore `record` into `userdata/<target_steam_id_32>/<app_id>/`, taking a
@@ -44,12 +43,20 @@ pub fn restore(
 
     let extract_result = extract_into(&record.archive_path, &target_dir, manifest.app_id);
     if let Err(e) = extract_result {
-        if let Some(safety) = &safety_backup {
+        let msg = if let Some(safety) = &safety_backup {
             let _ = std::fs::remove_dir_all(&target_dir);
             let _ = std::fs::create_dir_all(&target_dir);
-            let _ = extract_into(safety, &target_dir, manifest.app_id);
-        }
-        return Err(AppError::RestoreFailed(e.to_string()));
+            match extract_into(safety, &target_dir, manifest.app_id) {
+                Ok(()) => format!("{e} (rolled back from safety backup)"),
+                Err(re) => format!(
+                    "{e}; rollback FAILED: {re}; recover manually from {}",
+                    safety.display(),
+                ),
+            }
+        } else {
+            e.to_string()
+        };
+        return Err(AppError::RestoreFailed(msg));
     }
 
     Ok(target_dir)
@@ -58,24 +65,22 @@ pub fn restore(
 fn extract_into(archive: &Path, target_dir: &Path, app_id: u32) -> AppResult<()> {
     let f = File::open(archive)?;
     let mut zip = zip::ZipArchive::new(f)?;
-    let app_prefix = format!("{app_id}/");
+    let app_prefix = std::path::PathBuf::from(app_id.to_string());
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i)?;
-        let name = entry.name().to_string();
-        if name == MANIFEST_FILENAME { continue; }
-        let rel = match name.strip_prefix(&app_prefix) {
-            Some(r) => r.to_string(),
-            None => continue,
-        };
-        if rel.is_empty() { continue; }
-        let dest = target_dir.join(&rel);
+        if entry.name() == MANIFEST_FILENAME { continue; }
+        // Reject entries whose path doesn't sanitize to one enclosed under
+        // `target_dir` — defense against zip-slip in third-party archives.
+        let Some(safe) = entry.enclosed_name() else { continue };
+        let Ok(rel) = safe.strip_prefix(&app_prefix) else { continue };
+        if rel.as_os_str().is_empty() { continue; }
+        let dest = target_dir.join(rel);
         if entry.is_dir() {
             std::fs::create_dir_all(&dest)?;
         } else {
             if let Some(parent) = dest.parent() { std::fs::create_dir_all(parent)?; }
-            let mut buf = Vec::new();
-            entry.read_to_end(&mut buf)?;
-            std::fs::write(&dest, &buf)?;
+            let mut out = std::fs::File::create(&dest)?;
+            std::io::copy(&mut entry, &mut out)?;
         }
     }
     Ok(())
