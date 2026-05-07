@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useShallow } from "zustand/react/shallow";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/tauri-client";
-import type { GameView, TransferPair, TransferOutcome } from "@/types/domain";
+import { api, toErrorMessage } from "@/lib/tauri-client";
+import type { AppError, GameView, TransferPair, TransferOutcome } from "@/types/domain";
 import { Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,8 @@ import { TransferResultsDialog } from "./transfer-results-dialog";
 
 type SortKey = "recent" | "name";
 type WizardStep = "source" | "games" | "targets";
+
+const STEP_NUMBERS = { source: 1, games: 2, targets: 3 } as const satisfies Record<WizardStep, number>;
 
 function sortGames(games: GameView[], key: SortKey): GameView[] {
   if (key === "name") {
@@ -34,10 +37,18 @@ function sortGames(games: GameView[], key: SortKey): GameView[] {
 /** Three-step wizard: pick source account, pick games, pick targets, confirm. */
 export function TransferPage() {
   const { data: accounts = [] } = useAccounts();
-  const {
-    sourceId, targetIds, selectedAppIds,
-    setSource, toggleTarget, toggleApp, reset,
-  } = useTransferStore();
+  // Split selectors so unrelated store mutations don't re-render the whole page.
+  const { sourceId, targetIds, selectedAppIds } = useTransferStore(
+    useShallow((s) => ({
+      sourceId: s.sourceId,
+      targetIds: s.targetIds,
+      selectedAppIds: s.selectedAppIds,
+    })),
+  );
+  const setSource = useTransferStore((s) => s.setSource);
+  const toggleTarget = useTransferStore((s) => s.toggleTarget);
+  const toggleApp = useTransferStore((s) => s.toggleApp);
+  const reset = useTransferStore((s) => s.reset);
   const source = accounts.find((a) => a.steam_id_64 === sourceId);
   const { data: games = [], isLoading: gamesLoading } = useGames(source?.steam_id_32 ?? null);
   const [sortBy, setSortBy] = useState<SortKey>("recent");
@@ -47,13 +58,13 @@ export function TransferPage() {
   const [results, setResults] = useState<TransferOutcome[] | null>(null);
   const qc = useQueryClient();
 
-  const mutation = useMutation({
-    mutationFn: (pairs: TransferPair[]) => api.runTransfer(pairs),
+  const mutation = useMutation<TransferOutcome[], AppError, TransferPair[]>({
+    mutationFn: api.runTransfer,
     onSuccess: (out) => {
       setResults(out);
       qc.invalidateQueries({ queryKey: ["backups"] });
     },
-    onError: (e: { message: string }) => toast.error(e.message),
+    onError: (e) => toast.error(toErrorMessage(e)),
   });
 
   const buildPairs = (): TransferPair[] => {
@@ -78,8 +89,7 @@ export function TransferPage() {
     return pairs;
   };
 
-  const stepNum = step === "source" ? 1 : step === "games" ? 2 : 3;
-  const stepLabelText = `Step ${stepNum} of 3`;
+  const stepLabelText = `Step ${STEP_NUMBERS[step]} of 3`;
   const stepDesc = ((): string => {
     if (step === "source") {
       return source ? `From ${source.display_name}.` : "Pick the account to copy from.";
@@ -130,6 +140,10 @@ export function TransferPage() {
   const handleReset = () => {
     reset();
     setStep("source");
+  };
+  const handleConfirm = () => {
+    setConfirmOpen(false);
+    mutation.mutate(buildPairs());
   };
 
   return (
@@ -229,7 +243,7 @@ export function TransferPage() {
         onOpenChange={setConfirmOpen}
         gamesCount={selectedAppIds.size}
         targetsCount={targetIds.size}
-        onConfirm={() => { setConfirmOpen(false); mutation.mutate(buildPairs()); }}
+        onConfirm={handleConfirm}
       />
       <TransferResultsDialog
         open={results !== null}

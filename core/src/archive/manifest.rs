@@ -34,9 +34,9 @@ pub struct Manifest {
 }
 
 /// Filename of the manifest entry inside each backup zip.
-pub const MANIFEST_FILENAME: &str = "manifest.json";
+pub(crate) const MANIFEST_FILENAME: &str = "manifest.json";
 /// Current manifest schema. Bump when [`Manifest`]'s shape changes.
-pub const SCHEMA_VERSION: u32 = 1;
+pub(crate) const SCHEMA_VERSION: u32 = 1;
 
 #[cfg(test)]
 mod tests {

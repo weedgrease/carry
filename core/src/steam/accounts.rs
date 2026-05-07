@@ -8,7 +8,7 @@ use serde::Serialize;
 use std::path::PathBuf;
 
 /// SteamID64 base offset; subtract from a 64-bit ID to get the 32-bit form.
-const STEAM_ID_OFFSET: u64 = 76561197960265728;
+const STEAM_ID_OFFSET: u64 = 76_561_197_960_265_728;
 
 /// A Steam account combined with its userdata presence and resolved display name.
 #[derive(Debug, Clone, Serialize)]

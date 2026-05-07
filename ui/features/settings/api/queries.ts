@@ -10,14 +10,18 @@ export function useSettings() {
 }
 
 /**
- * Mutation that persists settings. Drops every cached query on success because
- * a Steam-path change can shift which accounts and games exist; invalidating
- * alone could briefly surface stale entries before refetches land.
+ * Mutation that persists settings. Selectively invalidates the query slices
+ * a Steam-path / hide-untitled change can affect — accounts, games, settings —
+ * rather than nuking every cached query.
  */
 export function useUpdateSettings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (s: Settings) => api.updateSettings(s),
-    onSuccess: () => qc.removeQueries(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+      qc.invalidateQueries({ queryKey: ["games"] });
+      qc.invalidateQueries({ queryKey: settingsKey });
+    },
   });
 }

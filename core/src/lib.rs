@@ -15,8 +15,10 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
-            let data_dir = app.path().app_data_dir().expect("app_data_dir");
-            let state = bridge::state::AppState::new(data_dir).expect("initialize state");
+            let data_dir = app.path().app_data_dir()
+                .expect("resolve app data directory (check Windows AppData ACLs)");
+            let state = bridge::state::AppState::new(data_dir)
+                .expect("initialize app state from data directory");
             app.manage(state);
             Ok(())
         })

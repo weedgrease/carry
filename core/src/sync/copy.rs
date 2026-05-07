@@ -6,17 +6,22 @@ use uuid::Uuid;
 use walkdir::WalkDir;
 
 /// Recursively copy `src` into `dst`, preserving the directory shape.
+/// Symlinks are skipped — Steam configs shouldn't contain them, and following
+/// them risks copying data outside the source tree.
 pub fn copy_tree(src: &Path, dst: &Path) -> AppResult<()> {
     if !src.is_dir() { return Err(AppError::PathMissing(src.to_path_buf())); }
     std::fs::create_dir_all(dst)?;
-    for entry in WalkDir::new(src) {
+    for entry in WalkDir::new(src).follow_links(false) {
         let entry = entry.map_err(|e| AppError::Io(std::io::Error::other(e.to_string())))?;
         let rel = entry.path().strip_prefix(src)
             .map_err(|e| AppError::Io(std::io::Error::other(e.to_string())))?;
         let target = dst.join(rel);
-        if entry.file_type().is_dir() {
+        let ft = entry.file_type();
+        if ft.is_symlink() {
+            continue;
+        } else if ft.is_dir() {
             std::fs::create_dir_all(&target)?;
-        } else if entry.file_type().is_file() {
+        } else if ft.is_file() {
             if let Some(parent) = target.parent() { std::fs::create_dir_all(parent)?; }
             std::fs::copy(entry.path(), &target)?;
         }

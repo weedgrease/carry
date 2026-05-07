@@ -36,7 +36,11 @@ listen<MetadataUpdate>("game-metadata-updated", (event) => {
   if (!is_known) {
     queryClient.invalidateQueries({ queryKey: ["games"] });
   }
-}).catch(() => {});
+}).catch((err) => {
+  // Listener failure means metadata events won't reach the cache; surface
+  // it so debugging "names never update" reports doesn't start blind.
+  console.warn("game-metadata-updated listener failed to register:", err);
+});
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

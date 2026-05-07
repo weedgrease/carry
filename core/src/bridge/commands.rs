@@ -398,7 +398,7 @@ pub async fn check_for_update(handle: tauri::AppHandle) -> AppResult<UpdateInfo>
     let current_version = handle.package_info().version.to_string();
     let updater = handle
         .updater()
-        .map_err(|e| AppError::BackupFailed(format!("updater init: {e}")))?;
+        .map_err(|e| AppError::Updater(format!("init: {e}")))?;
     match updater.check().await {
         Ok(Some(update)) => Ok(UpdateInfo {
             available: true,
@@ -412,7 +412,7 @@ pub async fn check_for_update(handle: tauri::AppHandle) -> AppResult<UpdateInfo>
             current_version,
             notes: None,
         }),
-        Err(e) => Err(AppError::BackupFailed(format!("update check: {e}"))),
+        Err(e) => Err(AppError::Updater(format!("check: {e}"))),
     }
 }
 
@@ -420,16 +420,16 @@ pub async fn check_for_update(handle: tauri::AppHandle) -> AppResult<UpdateInfo>
 pub async fn install_update(handle: tauri::AppHandle) -> AppResult<()> {
     let updater = handle
         .updater()
-        .map_err(|e| AppError::BackupFailed(format!("updater init: {e}")))?;
+        .map_err(|e| AppError::Updater(format!("init: {e}")))?;
     if let Some(update) = updater
         .check()
         .await
-        .map_err(|e| AppError::BackupFailed(format!("update check: {e}")))?
+        .map_err(|e| AppError::Updater(format!("check: {e}")))?
     {
         update
             .download_and_install(|_, _| {}, || {})
             .await
-            .map_err(|e| AppError::BackupFailed(format!("install: {e}")))?;
+            .map_err(|e| AppError::Updater(format!("install: {e}")))?;
         handle.restart();
     }
     Ok(())

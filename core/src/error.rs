@@ -23,6 +23,8 @@ pub enum AppError {
     BackupFailed(String),
     #[error("Restore failed: {0}")]
     RestoreFailed(String),
+    #[error("Updater error: {0}")]
+    Updater(String),
     #[error("Path does not exist: {0}")]
     PathMissing(PathBuf),
     #[error("Operation cancelled")]
@@ -53,6 +55,7 @@ impl Serialize for AppError {
             AppError::VdfParse(_) => "VdfParse",
             AppError::BackupFailed(_) => "BackupFailed",
             AppError::RestoreFailed(_) => "RestoreFailed",
+            AppError::Updater(_) => "Updater",
             AppError::PathMissing(_) => "PathMissing",
             AppError::Cancelled => "Cancelled",
             AppError::Io(_) => "Io",

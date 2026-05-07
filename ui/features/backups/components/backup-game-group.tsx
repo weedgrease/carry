@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { BackupRecord } from "@/types/domain";
 import { Badge } from "@/components/ui/badge";
 import { formatBytes } from "@/lib/format";
@@ -15,16 +16,17 @@ export function BackupGameGroup({
   headerUrl: string | null;
   records: BackupRecord[];
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
   return (
     <div className="mb-5 last:mb-0">
       <div className="flex items-center gap-3 mb-2">
-        {headerUrl ? (
+        {headerUrl && !imageFailed ? (
           <img
             src={headerUrl}
             alt={gameName}
             className="w-20 h-9 rounded object-cover"
             loading="lazy"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            onError={() => setImageFailed(true)}
           />
         ) : (
           <div className="w-20 h-9 rounded bg-muted" />
