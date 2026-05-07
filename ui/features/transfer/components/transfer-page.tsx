@@ -93,7 +93,7 @@ export function TransferPage() {
       const n = selectedAppIds.size;
       return (
         <>
-          {stepLabel(2)} · {n === 0 ? "Pick games to copy. Multi-select supported." : `${n} game${n === 1 ? "" : "s"} selected.`}
+          {stepLabel(2)} · {n === 0 ? "Pick games to copy." : `${n} game${n === 1 ? "" : "s"} selected.`}
         </>
       );
     }
@@ -204,25 +204,27 @@ export function TransferPage() {
         )}
       </div>
 
-      <div className="border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center gap-4">
-        <p className="text-sm text-muted-foreground flex-1">{status}</p>
-        <Button variant="ghost" onClick={handleReset} disabled={mutation.isPending}>
-          Reset
-        </Button>
-        {step !== "source" && (
-          <Button variant="outline" onClick={goBack} disabled={mutation.isPending}>
-            ← Back
+      <div className="border-t bg-background/95 backdrop-blur px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <p className="text-sm text-muted-foreground sm:flex-1">{status}</p>
+        <div className="flex items-center justify-end gap-2 sm:gap-4">
+          <Button variant="ghost" onClick={handleReset} disabled={mutation.isPending}>
+            Reset
           </Button>
-        )}
-        {step !== "targets" ? (
-          <Button onClick={goNext} disabled={!canAdvance || mutation.isPending}>
-            Next →
-          </Button>
-        ) : (
-          <Button onClick={() => setConfirmOpen(true)} disabled={!ready || mutation.isPending}>
-            {mutation.isPending ? "Transferring..." : "Transfer →"}
-          </Button>
-        )}
+          {step !== "source" && (
+            <Button variant="outline" onClick={goBack} disabled={mutation.isPending}>
+              ← Back
+            </Button>
+          )}
+          {step !== "targets" ? (
+            <Button onClick={goNext} disabled={!canAdvance || mutation.isPending}>
+              Next →
+            </Button>
+          ) : (
+            <Button onClick={() => setConfirmOpen(true)} disabled={!ready || mutation.isPending}>
+              {mutation.isPending ? "Transferring..." : "Transfer →"}
+            </Button>
+          )}
+        </div>
       </div>
 
       <TransferConfirmDialog

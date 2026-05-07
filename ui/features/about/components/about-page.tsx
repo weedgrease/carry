@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { open } from "@tauri-apps/plugin-shell";
+import { toast } from "sonner";
 import { Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/tauri-client";
 
 export function AboutPage() {
   const [version, setVersion] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     getVersion().then(setVersion).catch(() => {});
@@ -13,6 +16,25 @@ export function AboutPage() {
 
   const openExternal = (url: string) => {
     open(url).catch(() => {});
+  };
+
+  const checkForUpdates = async () => {
+    setChecking(true);
+    try {
+      const info = await api.checkForUpdate();
+      if (info.available) {
+        toast(`Update v${info.version} available`, {
+          action: { label: "Install", onClick: () => api.installUpdate() },
+          duration: 10_000,
+        });
+      } else {
+        toast.success("You're on the latest version.");
+      }
+    } catch (e: unknown) {
+      toast.error((e as { message: string }).message ?? "Update check failed");
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
@@ -30,6 +52,14 @@ export function AboutPage() {
               Transfer Steam game configuration files between accounts on the
               same machine, with automatic backups and signed auto-updates.
             </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={checkForUpdates}
+              disabled={checking}
+            >
+              {checking ? "Checking…" : "Check for updates"}
+            </Button>
           </div>
         </Section>
 

@@ -25,14 +25,6 @@ export function BackupsPage() {
     return m;
   }, [records]);
 
-  // Default selection: most-recent-login account that has backups, else most-recent-login account.
-  useEffect(() => {
-    if (selectedId !== null) return;
-    if (accounts.length === 0) return;
-    const withBackups = accounts.find((a) => (counts.get(a.steam_id_64) ?? 0) > 0);
-    setSelectedId((withBackups ?? accounts[0]).steam_id_64);
-  }, [accounts, counts, selectedId]);
-
   const selectedAccount = accounts.find((a) => a.steam_id_64 === selectedId) ?? null;
 
   const filteredForSelected = useMemo(() => {
