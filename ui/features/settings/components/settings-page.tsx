@@ -19,13 +19,21 @@ export function SettingsPage() {
   const update = useUpdateSettings();
   const { theme, setTheme } = useTheme();
   const [steamPath, setSteamPath] = useState("");
+  // `retention` holds the user-visible "keep last N" number, even when the
+  // pruning toggle is off — so unchecking the toggle restores their last
+  // preferred number. The wire format treats 0 as "never auto-delete".
   const [retention, setRetention] = useState(20);
+  const [keepAllBackups, setKeepAllBackups] = useState(false);
   const [hideUntitled, setHideUntitled] = useState(true);
 
   useEffect(() => {
     if (settings) {
       setSteamPath(settings.steam_path_override ?? "");
-      setRetention(settings.backup_retention_per_pair);
+      const stored = settings.backup_retention_per_pair;
+      setKeepAllBackups(stored === 0);
+      // Don't clobber the input back to 0 when "keep all" was chosen — keep
+      // the existing user-visible value so they can toggle back without losing it.
+      if (stored !== 0) setRetention(stored);
       setHideUntitled(settings.hide_untitled_apps);
     }
   }, [settings]);
@@ -35,7 +43,7 @@ export function SettingsPage() {
     update.mutate({
       ...settings,
       steam_path_override: steamPath ? steamPath : null,
-      backup_retention_per_pair: retention,
+      backup_retention_per_pair: keepAllBackups ? 0 : retention,
       hide_untitled_apps: hideUntitled,
     }, {
       onSuccess: () => toast.success("Settings saved"),
@@ -70,39 +78,52 @@ export function SettingsPage() {
             </div>
           </Section>
 
-          <Section
-            title="Backup retention"
-            description="Auto-delete old auto-backups when more than this number exist per (account, game). Manual backups are never auto-deleted."
-          >
-            <div className="flex items-center gap-2">
-              <Label htmlFor="retention" className="text-sm">Keep last</Label>
-              <Input
-                id="retention"
-                type="number"
-                min={1}
-                value={retention}
-                onChange={(e) => setRetention(Number(e.target.value) || 1)}
-                className="w-20"
-              />
-              <span className="text-sm text-muted-foreground">most recent</span>
+          <Section title="Backup retention">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="keep-all-backups"
+                  checked={keepAllBackups}
+                  onCheckedChange={(v) => setKeepAllBackups(v === true)}
+                />
+                <Label htmlFor="keep-all-backups" className="text-sm font-normal cursor-pointer">
+                  Keep every auto-backup forever
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="retention" className="text-sm">Keep last</Label>
+                <Input
+                  id="retention"
+                  type="number"
+                  min={1}
+                  value={retention}
+                  disabled={keepAllBackups}
+                  onChange={(e) => setRetention(Number(e.target.value) || 1)}
+                  className="w-20"
+                />
+                <span className="text-sm text-muted-foreground">per game, per account</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Manual backups are never auto-deleted.
+              </p>
             </div>
           </Section>
 
-          <Section
-            title="Game list"
-            description="Apps without Steam store metadata are typically internal Steam apps (e.g. Steam Client, Steam Input, etc.)."
-          >
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="hide-untitled"
-                checked={hideUntitled}
-                onCheckedChange={(v) => setHideUntitled(v === true)}
-              />
-              <Label htmlFor="hide-untitled" className="text-sm font-normal cursor-pointer">
-                Hide untitled apps from the games list
-              </Label>
-            </div>
-            <div className="mt-3">
+          <Section title="Game list">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="hide-untitled"
+                  checked={hideUntitled}
+                  onCheckedChange={(v) => setHideUntitled(v === true)}
+                />
+                <Label htmlFor="hide-untitled" className="text-sm font-normal cursor-pointer">
+                  Hide untitled apps from the games list
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Untitled apps are usually Steam internals (Steam Client, Steam Input, etc.).
+              </p>
               <Button
                 variant="outline"
                 size="sm"
@@ -120,7 +141,7 @@ export function SettingsPage() {
             </div>
           </Section>
 
-          <Section title="Appearance" description="Theme">
+          <Section title="Appearance">
             <Select value={theme} onValueChange={(v) => setTheme(v as "light" | "dark" | "system")}>
               <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
