@@ -198,18 +198,11 @@ export function TransferPage() {
       </div>
 
       <div className="border-t bg-background/95 backdrop-blur px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        {/* Narrow: label and description on opposite sides. */}
-        <div className="flex items-center justify-between gap-3 text-sm sm:hidden">
-          <span className="font-semibold text-foreground">{stepLabelText}</span>
-          <span className="text-muted-foreground text-right truncate">{stepDesc}</span>
-        </div>
-        {/* Wide: combined sentence. */}
-        <p className="hidden sm:block sm:flex-1 text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground sm:flex-1">
           <span className="font-semibold text-foreground">{stepLabelText}</span> · {stepDesc}
         </p>
-        {/* Buttons: Reset on far left at narrow, far right at wide. */}
         <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
-          <Button variant="ghost" onClick={handleReset} disabled={mutation.isPending}>
+          <Button variant="outline" onClick={handleReset} disabled={mutation.isPending}>
             Reset
           </Button>
           <div className="flex items-center gap-2 sm:gap-4">
