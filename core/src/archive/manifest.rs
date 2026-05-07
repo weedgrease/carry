@@ -1,20 +1,24 @@
+//! On-disk schema for the JSON manifest embedded in every backup zip.
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+/// Why a backup was created. Drives retention (only `Manual` survives pruning).
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "PascalCase")]
 pub enum BackupReason {
     /// User clicked "Backup now".
     Manual,
-    /// Auto-snapshot of the target's existing config taken before being overwritten by a transfer.
+    /// Auto-snapshot of the target's config before a transfer overwrites it.
     PreCopy,
-    /// Auto-snapshot of the target's existing config taken before being replaced by a restore.
+    /// Auto-snapshot of the target's config before a restore replaces it.
     PreRestore,
-    /// Auto-snapshot of the source's config at the start of a transfer (paired with PreCopy entries).
+    /// Auto-snapshot of the source's config at the start of a transfer.
     Source,
 }
 
+/// Metadata embedded in a backup zip alongside the config payload.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub struct Manifest {
@@ -29,7 +33,9 @@ pub struct Manifest {
     pub byte_size: u64,
 }
 
+/// Filename of the manifest entry inside each backup zip.
 pub const MANIFEST_FILENAME: &str = "manifest.json";
+/// Current manifest schema. Bump when [`Manifest`]'s shape changes.
 pub const SCHEMA_VERSION: u32 = 1;
 
 #[cfg(test)]

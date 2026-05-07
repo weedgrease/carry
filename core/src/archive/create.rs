@@ -1,3 +1,5 @@
+//! Build a deflate-compressed backup zip with an embedded manifest.
+
 use crate::archive::manifest::{Manifest, BackupReason, MANIFEST_FILENAME, SCHEMA_VERSION};
 use crate::error::{AppError, AppResult};
 use chrono::Utc;
@@ -7,6 +9,7 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 use zip::write::SimpleFileOptions;
 
+/// Inputs to [`create`].
 pub struct CreateRequest<'a> {
     pub source_dir: &'a Path,
     pub steam_id_64: &'a str,
@@ -17,11 +20,15 @@ pub struct CreateRequest<'a> {
     pub backup_root: &'a Path,
 }
 
+/// Output of a successful [`create`] call.
 pub struct CreateResult {
     pub archive_path: PathBuf,
     pub size_bytes: u64,
 }
 
+/// Zip the contents of `source_dir` into
+/// `<backup_root>/<steam_id_64>/<app_id>/<timestamp>_<reason>.zip` along with
+/// a `manifest.json`.
 pub fn create(req: CreateRequest) -> AppResult<CreateResult> {
     if !req.source_dir.is_dir() {
         return Err(AppError::PathMissing(req.source_dir.to_path_buf()));

@@ -18,11 +18,9 @@ type MetadataUpdate = {
   is_known: boolean;
 };
 
-// Register at module load — before React even renders — so the listener is
-// always in place by the time list_games kicks off the backend's metadata
-// fetcher. listen() is async (it round-trips to register the IPC handler),
-// and with 4-way parallel fetches the first events can fire in tens of ms.
-// Setting up inside a hook on hook-first-call would race those events.
+// Registered at module load (pre-render) because listen() is async and the
+// backend can emit the first event within tens of ms of list_games starting
+// — a hook-first-call registration would race those.
 listen<MetadataUpdate>("game-metadata-updated", (event) => {
   const { app_id, name, header_image_url, is_known } = event.payload;
   queryClient.setQueriesData<GameView[]>({ queryKey: ["games"] }, (old) => {
@@ -33,9 +31,8 @@ listen<MetadataUpdate>("game-metadata-updated", (event) => {
         : g,
     );
   });
-  // Untitled entries may need to vanish when the user has hide_untitled_apps
-  // on. That filter lives server-side in list_games, so trigger a refetch
-  // for the uncommon untitled case. Known games stay on the fast no-IPC path.
+  // hide_untitled_apps is enforced server-side, so untitled resolutions need
+  // a refetch to reflect the filter. Known games stay on the no-IPC fast path.
   if (!is_known) {
     queryClient.invalidateQueries({ queryKey: ["games"] });
   }

@@ -12,6 +12,7 @@ function fmtBytes(n: number) {
   return `${v.toFixed(1)} ${u[i]}`;
 }
 
+/** Flat tabular view of every backup. Used by older flat layouts. */
 export function BackupsTable({ records }: { records: BackupRecord[] }) {
   if (records.length === 0) {
     return <div className="p-12 text-center text-muted-foreground">No backups yet.</div>;

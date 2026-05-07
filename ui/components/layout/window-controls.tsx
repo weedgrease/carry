@@ -15,6 +15,7 @@ const minimize = () => runWindowAction("Minimize", () => getCurrentWindow().mini
 const toggleMaximize = () => runWindowAction("Maximize toggle", () => getCurrentWindow().toggleMaximize());
 const close = () => runWindowAction("Close", () => getCurrentWindow().close());
 
+/** Custom minimize / maximize / close buttons replacing the OS title bar. */
 export function WindowControls() {
   return (
     <div

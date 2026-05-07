@@ -1,9 +1,11 @@
+/** Typed wrappers around every Tauri command exposed by the Rust bridge. */
 import { invoke } from "@tauri-apps/api/core";
 import type {
   Account, GameView, BackupRecord, TransferPair, TransferOutcome,
   Settings, AppError, UpdateInfo,
 } from "@/types/domain";
 
+/** Coerce an arbitrary thrown Tauri rejection into the typed `{ code, message }` shape. */
 function unwrap<T>(p: Promise<T>): Promise<T> {
   return p.catch((raw) => {
     const err: AppError = typeof raw === "object" && raw && "code" in raw
@@ -13,6 +15,7 @@ function unwrap<T>(p: Promise<T>): Promise<T> {
   });
 }
 
+/** Typed facade over `invoke()` for every Tauri command, with normalized errors. */
 export const api = {
   listAccounts: () => unwrap(invoke<Account[]>("list_accounts")),
   listGames: (steam_id_32: number) =>

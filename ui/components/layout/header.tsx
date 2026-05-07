@@ -10,6 +10,7 @@ const links = [
   { to: "/about", label: "About" },
 ];
 
+/** Custom title-bar acting as the Tauri drag region, with nav and window controls. */
 export function Header() {
   return (
     <header

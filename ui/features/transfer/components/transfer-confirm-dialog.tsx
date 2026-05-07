@@ -3,6 +3,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+/** Confirmation dialog shown before kicking off a transfer batch. */
 export function TransferConfirmDialog({
   open, onOpenChange, onConfirm, gamesCount, targetsCount,
 }: {

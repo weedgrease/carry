@@ -20,18 +20,18 @@ type WizardStep = "source" | "games" | "targets";
 
 function sortGames(games: GameView[], key: SortKey): GameView[] {
   if (key === "name") {
-    // Pending entries (empty name) sort to the end so the user sees real
-    // names alphabetised and skeletons at the tail.
+    // Pending entries (empty name) sort to the end so skeletons sit at the tail.
     return [...games].sort((a, b) => {
       if (!a.name && b.name) return 1;
       if (a.name && !b.name) return -1;
       return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
     });
   }
-  // "recent" — backend already returns games sorted by last_modified DESC.
+  // "recent": backend returns last_modified DESC already.
   return games;
 }
 
+/** Three-step wizard: pick source account, pick games, pick targets, confirm. */
 export function TransferPage() {
   const { data: accounts = [] } = useAccounts();
   const {
@@ -78,9 +78,6 @@ export function TransferPage() {
     return pairs;
   };
 
-  // Split into two parts so the footer can either join them with " · " on
-  // wider viewports OR put the label on the left and the description on
-  // the right with justify-between when narrow.
   const stepNum = step === "source" ? 1 : step === "games" ? 2 : 3;
   const stepLabelText = `Step ${stepNum} of 3`;
   const stepDesc = ((): string => {
@@ -102,9 +99,8 @@ export function TransferPage() {
     targetIds.size > 0;
   const ready = !!source && selectedAppIds.size > 0 && targetIds.size > 0;
 
-  // If the user changed Steam path (or any other reason the previously-
-  // selected source no longer exists), drop the stale selection AND
-  // restart the wizard so the page is consistent again.
+  // If the previously-selected source no longer exists (e.g. Steam path
+  // changed), drop the stale selection and restart the wizard.
   useEffect(() => {
     if (sourceId && accounts.length > 0 && !source) {
       reset();
@@ -112,8 +108,6 @@ export function TransferPage() {
     }
   }, [sourceId, source, accounts.length, reset]);
 
-  // Always scroll the content area to the top when changing wizard step so
-  // the new section header is visible.
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });

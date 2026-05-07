@@ -9,6 +9,7 @@ function fmtBytes(n: number) {
   return `${v.toFixed(1)} ${u[i]}`;
 }
 
+/** Header image, name, and table of backup rows for one game. */
 export function BackupGameGroup({
   appId,
   gameName,

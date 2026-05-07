@@ -5,6 +5,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/app/providers/theme-provider";
 
+/** Dropdown that switches between light, dark, and system themes. */
 export function ThemeToggle() {
   const { setTheme, resolved } = useTheme();
   return (

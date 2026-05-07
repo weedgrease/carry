@@ -3,10 +3,12 @@ import { api } from "@/lib/tauri-client";
 
 export const backupsKey = ["backups"] as const;
 
+/** React Query subscription for every backup record on disk. */
 export function useBackups() {
   return useQuery({ queryKey: backupsKey, queryFn: api.listBackups });
 }
 
+/** Mutation that deletes a backup zip and refreshes the cache. */
 export function useDeleteBackup() {
   const qc = useQueryClient();
   return useMutation({
@@ -15,6 +17,7 @@ export function useDeleteBackup() {
   });
 }
 
+/** Mutation that restores a backup into a target account. */
 export function useRestoreBackup() {
   const qc = useQueryClient();
   return useMutation({

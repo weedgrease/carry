@@ -1,3 +1,5 @@
+//! Tauri-managed application state shared across all command handlers.
+
 use crate::error::AppResult;
 use crate::settings::Settings;
 use crate::steam::install::{detect, SteamInstall};
@@ -5,19 +7,19 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+/// Shared mutable state held by the Tauri runtime and accessed by every command.
 pub struct AppState {
     pub steam: Mutex<Option<SteamInstall>>,
     pub settings: Mutex<Settings>,
     pub data_dir: PathBuf,
     pub http: reqwest::Client,
-    /// AppIds whose metadata is currently being fetched in a background task.
-    /// `list_games` checks this before spawning new fetches so we don't issue
-    /// duplicate network requests for the same appId across rapid frontend
-    /// polls or multiple account selections.
+    /// AppIds currently being fetched by a background metadata task. Prevents
+    /// duplicate requests for the same id across rapid frontend polls.
     pub games_fetch_in_progress: Arc<Mutex<HashSet<u32>>>,
 }
 
 impl AppState {
+    /// Initialize state, loading persisted settings and detecting Steam.
     pub fn new(data_dir: PathBuf) -> AppResult<Self> {
         std::fs::create_dir_all(&data_dir)?;
         let settings_path = data_dir.join("settings.json");

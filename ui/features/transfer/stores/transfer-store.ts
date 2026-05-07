@@ -10,6 +10,7 @@ type S = {
   reset: () => void;
 };
 
+/** Zustand store for the Transfer wizard's source, targets, and game selection. */
 export const useTransferStore = create<S>((set) => ({
   sourceId: null,
   targetIds: new Set(),

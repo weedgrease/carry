@@ -1,3 +1,5 @@
+//! Extract a backup zip back into a Steam userdata config tree.
+
 use crate::archive::create::{create, CreateRequest};
 use crate::archive::list::{read_manifest, BackupRecord};
 use crate::archive::manifest::{BackupReason, MANIFEST_FILENAME};
@@ -7,14 +9,15 @@ use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+/// Restore `record` into `userdata/<target_steam_id_32>/<app_id>/`, taking a
+/// `PreRestore` safety backup of the existing target first and rolling back
+/// from it if extraction fails.
 pub fn restore(
     install: &SteamInstall,
     record: &BackupRecord,
     target_steam_id_32: u32,
     backup_root: &Path,
 ) -> AppResult<PathBuf> {
-    // Note: no Steam-running guard. The PreRestore safety backup is the
-    // recovery path if anything goes sideways during the extract.
     let manifest = read_manifest(&record.archive_path)?;
     let target_dir = install.userdata_dir()
         .join(target_steam_id_32.to_string())
@@ -42,7 +45,6 @@ pub fn restore(
     let extract_result = extract_into(&record.archive_path, &target_dir, manifest.app_id);
     if let Err(e) = extract_result {
         if let Some(safety) = &safety_backup {
-            // rollback: clear target and re-extract safety
             let _ = std::fs::remove_dir_all(&target_dir);
             let _ = std::fs::create_dir_all(&target_dir);
             let _ = extract_into(safety, &target_dir, manifest.app_id);
@@ -105,7 +107,6 @@ mod tests {
             backup_root: &backup_root,
         }).unwrap();
 
-        // wipe & restore back into a different target dir
         let install = validate_steam_root(root).unwrap();
         let manifest = read_manifest(&res.archive_path).unwrap();
         let record = BackupRecord {

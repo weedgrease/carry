@@ -1,12 +1,13 @@
+//! Enumerate the per-game config folders inside an account's userdata tree.
+
 use crate::error::AppResult;
 use crate::steam::install::SteamInstall;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use std::path::PathBuf;
 
-/// App IDs that exist as `userdata/<id32>/<appId>/` folders but aren't real
-/// games — typically Steam's own internal apps. Filtered out so they don't
-/// appear in the games list. Add new entries here if more show up.
+/// AppIds that show up under `userdata/<id32>/` but aren't real games — Steam's
+/// own internal apps. Add new entries here if more surface in the wild.
 const STEAM_INTERNAL_APP_IDS: &[u32] = &[
     7,      // Steam client itself
     760,    // Steam Screenshots
@@ -14,6 +15,7 @@ const STEAM_INTERNAL_APP_IDS: &[u32] = &[
     744350, // Steam awards / events
 ];
 
+/// A single game's config directory under an account.
 #[derive(Debug, Clone, Serialize)]
 pub struct GameRef {
     pub app_id: u32,
@@ -22,15 +24,14 @@ pub struct GameRef {
     pub last_modified: Option<DateTime<Utc>>,
 }
 
+/// All games under `userdata/<steam_id_32>/`, sorted most-recently-played first.
 pub fn list_for_account(install: &SteamInstall, steam_id_32: u32) -> AppResult<Vec<GameRef>> {
     let account_dir = install.userdata_dir().join(steam_id_32.to_string());
     if !account_dir.is_dir() { return Ok(Vec::new()); }
 
-    // Steam tracks per-app LastPlayed in localconfig.vdf. That's the real
-    // "recently played" signal — using config-dir mtime as a proxy is wrong
-    // because Steam Cloud sync, remotecache.vdf rewrites on Steam exit, and
-    // unrelated config touches all bump it without the user actually
-    // launching the game.
+    // localconfig.vdf's per-app LastPlayed is the real recency signal. The
+    // userdata folder mtime is unreliable: cloud sync, remotecache.vdf
+    // rewrites, and unrelated config touches all bump it.
     let last_played = crate::steam::vdf::parse_localconfig_last_played(
         &install.localconfig_vdf(steam_id_32),
     ).unwrap_or_default();
@@ -45,8 +46,7 @@ pub fn list_for_account(install: &SteamInstall, steam_id_32: u32) -> AppResult<V
         if STEAM_INTERNAL_APP_IDS.contains(&app_id) { continue; }
         let path = entry.path();
         let (size, mtime) = dir_stats(&path)?;
-        // Prefer Steam's tracked LastPlayed; fall back to file mtime so games
-        // never launched (yet still have userdata) still get an ordering.
+        // Fall back to mtime so never-launched games still get an ordering.
         let last_modified = last_played.get(&app_id).copied().or(mtime);
         games.push(GameRef {
             app_id,
@@ -103,9 +103,8 @@ mod tests {
         let dir = tempdir().unwrap();
         let root = dir.path();
         std::fs::create_dir_all(root.join("config")).unwrap();
-        // Real game (Dota 2)
         std::fs::create_dir_all(root.join("userdata/12345/570")).unwrap();
-        // Steam internal app ids: each gets a fake file so dir_stats sees something.
+        // Each internal id gets a fake file so dir_stats sees something.
         for internal in [7u32, 760, 241100, 744350] {
             let dir = root.join(format!("userdata/12345/{internal}/local"));
             std::fs::create_dir_all(&dir).unwrap();

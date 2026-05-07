@@ -34,6 +34,7 @@ const router = createBrowserRouter([
   },
 ]);
 
+/** Top-level router: lazy-loads non-default routes behind a Suspense fallback. */
 export function Router() {
   return <RouterProvider router={router} />;
 }

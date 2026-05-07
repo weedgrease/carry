@@ -14,6 +14,7 @@ import type { BackupRecord } from "@/types/domain";
 import { useDeleteBackup, useRestoreBackup } from "../api/queries";
 import { useAccounts } from "@/features/accounts";
 
+/** Per-row dropdown with Restore, Reveal in Explorer, and Delete confirmations. */
 export function BackupRowActions({ record }: { record: BackupRecord }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmRestore, setConfirmRestore] = useState(false);

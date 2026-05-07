@@ -1,7 +1,11 @@
+//! Resolve account avatars from Steam's local cache, falling back to the
+//! public Steam Community profile XML (no API key needed).
+
 use crate::error::{AppError, AppResult};
 use crate::steam::install::SteamInstall;
 use std::path::{Path, PathBuf};
 
+/// Path to a locally cached avatar PNG, if Steam has already downloaded it.
 pub fn local_avatar(install: &SteamInstall, steam_id_64: &str) -> Option<PathBuf> {
     let p = install.avatar_cache_dir().join(format!("{steam_id_64}.png"));
     if p.exists() { Some(p) } else { None }
@@ -74,6 +78,8 @@ fn parse_profile_xml(xml: &str) -> ProfileXml {
     out
 }
 
+/// Fetch the avatar from Steam Community and cache it as
+/// `<cache_dir>/<steam_id_64>.png`. No-op if the file already exists.
 pub async fn fetch_remote_avatar(
     client: &reqwest::Client,
     steam_id_64: &str,
@@ -94,6 +100,7 @@ pub async fn fetch_remote_avatar(
     Ok(dest)
 }
 
+/// Local-only avatar lookup. Alias for [`local_avatar`] kept for naming symmetry.
 pub fn resolve(install: &SteamInstall, steam_id_64: &str) -> Option<PathBuf> {
     local_avatar(install, steam_id_64)
 }

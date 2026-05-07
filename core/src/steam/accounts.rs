@@ -1,3 +1,5 @@
+//! Discover Steam accounts known to this install (loginusers + userdata).
+
 use crate::error::AppResult;
 use crate::steam::install::SteamInstall;
 use crate::steam::vdf::parse_loginusers;
@@ -5,8 +7,10 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 use std::path::PathBuf;
 
+/// SteamID64 base offset; subtract from a 64-bit ID to get the 32-bit form.
 const STEAM_ID_OFFSET: u64 = 76561197960265728;
 
+/// A Steam account combined with its userdata presence and resolved display name.
 #[derive(Debug, Clone, Serialize)]
 pub struct Account {
     pub steam_id_64: String,
@@ -19,10 +23,12 @@ pub struct Account {
     pub has_userdata: bool,
 }
 
+/// Convert a SteamID64 to its 32-bit form (the userdata folder name).
 pub fn steam_id_64_to_32(id64: u64) -> u32 {
     (id64 - STEAM_ID_OFFSET) as u32
 }
 
+/// Build a list of accounts from `loginusers.vdf`, sorted most-recent first.
 pub fn discover(install: &SteamInstall) -> AppResult<Vec<Account>> {
     let entries = parse_loginusers(&install.loginusers_vdf())?;
     let mut accounts = Vec::with_capacity(entries.len());
@@ -76,7 +82,6 @@ mod tests {
         let root = dir.path();
         std::fs::create_dir_all(root.join("config")).unwrap();
         std::fs::create_dir_all(root.join("userdata/39734273")).unwrap();
-        // Note: no userdata dir for the second account
         let vdf = r#"
 "users"
 {

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+/** Per-pair success/failure summary shown after a transfer completes. */
 export function TransferResultsDialog({
   open, onOpenChange, results,
 }: { open: boolean; onOpenChange: (o: boolean) => void; results: TransferOutcome[] }) {

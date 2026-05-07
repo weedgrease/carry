@@ -1,8 +1,11 @@
+//! Parsers for Steam's VDF (KeyValues) configuration files.
+
 use crate::error::{AppError, AppResult};
 use chrono::{DateTime, TimeZone, Utc};
 use std::collections::HashMap;
 use std::path::Path;
 
+/// One entry in `config/loginusers.vdf`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LoginUserEntry {
     pub steam_id_64: String,
@@ -12,11 +15,13 @@ pub struct LoginUserEntry {
     pub timestamp: Option<DateTime<Utc>>,
 }
 
+/// Read and parse `loginusers.vdf` from disk.
 pub fn parse_loginusers(path: &Path) -> AppResult<Vec<LoginUserEntry>> {
     let text = std::fs::read_to_string(path)?;
     parse_loginusers_str(&text)
 }
 
+/// Parse the contents of a `loginusers.vdf` payload.
 pub fn parse_loginusers_str(text: &str) -> AppResult<Vec<LoginUserEntry>> {
     let vdf = keyvalues_parser::parse(text).map_err(|e| AppError::VdfParse(e.to_string()))?;
     let users_obj = vdf
@@ -50,15 +55,17 @@ pub fn parse_loginusers_str(text: &str) -> AppResult<Vec<LoginUserEntry>> {
     Ok(entries)
 }
 
-/// Parse a Steam `userdata/<id32>/config/localconfig.vdf` for per-app
-/// last-played timestamps. This is much more accurate than the userdata
-/// folder's file mtime, which gets touched by Steam Cloud sync and
-/// `remotecache.vdf` rewrites even when the user never launches the game.
+/// Per-app last-played timestamps from `userdata/<id32>/config/localconfig.vdf`.
+///
+/// More accurate than userdata folder mtime, which gets bumped by Steam Cloud
+/// sync and `remotecache.vdf` rewrites even when the user never launches the
+/// game.
 pub fn parse_localconfig_last_played(path: &Path) -> AppResult<HashMap<u32, DateTime<Utc>>> {
     let text = std::fs::read_to_string(path)?;
     parse_localconfig_last_played_str(&text)
 }
 
+/// Parse the contents of a `localconfig.vdf` payload for last-played timestamps.
 pub fn parse_localconfig_last_played_str(text: &str) -> AppResult<HashMap<u32, DateTime<Utc>>> {
     let vdf = keyvalues_parser::parse(text).map_err(|e| AppError::VdfParse(e.to_string()))?;
     let root = vdf
@@ -66,9 +73,8 @@ pub fn parse_localconfig_last_played_str(text: &str) -> AppResult<HashMap<u32, D
         .get_obj()
         .ok_or_else(|| AppError::VdfParse("expected top-level object".into()))?;
 
-    // The path is "Software" → "Valve" → "Steam" → "apps". Steam has been
-    // observed to vary the casing of these keys (e.g. "valve" lowercase),
-    // so descend case-insensitively.
+    // Steam varies the casing of these keys in the wild (e.g. lowercase
+    // "valve"), so descend case-insensitively.
     let apps = match walk_ci(root, &["Software", "Valve", "Steam", "apps"]) {
         Some(o) => o,
         None => return Ok(HashMap::new()),

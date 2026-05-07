@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+/** Page-level grouping with an uppercase heading, optional description and action slot. */
 export function Section({
   title,
   description,

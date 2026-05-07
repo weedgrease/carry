@@ -1,3 +1,5 @@
+//! Orchestrate per-pair config transfers with auto-backup and retention pruning.
+
 use crate::archive::create::{create, CreateRequest};
 use crate::archive::manifest::BackupReason;
 use crate::archive::retention::prune_for_pair;
@@ -8,6 +10,7 @@ use crate::sync::preflight::{dir_size, ensure_disk_space};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+/// One source-to-target copy of a single game's config.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferPair {
     pub source_steam_id_64: String,
@@ -20,6 +23,7 @@ pub struct TransferPair {
     pub game_name: String,
 }
 
+/// Per-pair result returned to the frontend after [`run_transfer`].
 #[derive(Debug, Clone, Serialize)]
 pub struct TransferOutcome {
     pub pair: TransferPair,
@@ -28,35 +32,33 @@ pub struct TransferOutcome {
     pub backup_path: Option<PathBuf>,
 }
 
+/// Configuration for [`run_transfer`].
 pub struct TransferOptions<'a> {
     pub backup_root: &'a Path,
     pub retention_per_pair: u32,
 }
 
+/// Run all `pairs` sequentially, taking a Source snapshot per unique source
+/// pair, a PreCopy snapshot per target, copying via [`TwoPhaseCopy`], and
+/// pruning to retention. Errors are captured per pair rather than aborting
+/// the batch.
+///
+/// Steam-running is intentionally not enforced: Steam only writes to a
+/// `userdata/<id>/<appId>/` tree while that game is launched or that account
+/// is the active login. The PreCopy backup is the recovery path otherwise.
 pub fn run_transfer(
     install: &SteamInstall,
     pairs: &[TransferPair],
     opts: TransferOptions,
 ) -> AppResult<Vec<TransferOutcome>> {
-    // Note: we deliberately do NOT block on Steam being open. Steam usually
-    // only writes to a userdata/<id>/<appId>/ tree while THAT specific game
-    // is launched (cloud sync) or while the account is the actively-logged-
-    // in one (login/exit sync). The pre-copy auto-backup is the safety net
-    // — if Steam clobbers the new config, the user can restore from it.
-    //
-    // For symmetry, we also snapshot the SOURCE side once per
-    // (source_steam_id_64, app_id) at the start of the transfer. This gives
-    // the user a recovery point if anything (Steam's cloud sync, an aborted
-    // copy, etc.) corrupts the source mid-operation.
     let mut source_snapshots_taken: std::collections::HashSet<(String, u32)> =
         std::collections::HashSet::new();
     let mut results = Vec::with_capacity(pairs.len());
     for pair in pairs {
         let key = (pair.source_steam_id_64.clone(), pair.app_id);
         if source_snapshots_taken.insert(key) {
-            // First time we've seen this (source, app_id) in this transfer —
-            // take a Source-reason backup. Best effort: if it fails, the
-            // per-pair PreCopy is still a recovery path for the target side.
+            // Best effort: if the Source snapshot fails the per-pair PreCopy
+            // still gives the target a recovery path.
             let source_dir = install.userdata_dir()
                 .join(pair.source_steam_id_32.to_string())
                 .join(pair.app_id.to_string());

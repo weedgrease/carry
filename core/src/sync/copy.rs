@@ -1,8 +1,11 @@
+//! Two-phase directory copy with rollback (stage to `.tmp_<uuid>`, then swap).
+
 use crate::error::{AppError, AppResult};
 use std::path::Path;
 use uuid::Uuid;
 use walkdir::WalkDir;
 
+/// Recursively copy `src` into `dst`, preserving the directory shape.
 pub fn copy_tree(src: &Path, dst: &Path) -> AppResult<()> {
     if !src.is_dir() { return Err(AppError::PathMissing(src.to_path_buf())); }
     std::fs::create_dir_all(dst)?;
@@ -21,6 +24,8 @@ pub fn copy_tree(src: &Path, dst: &Path) -> AppResult<()> {
     Ok(())
 }
 
+/// Atomically swap `target` for `new_contents` via rename, with rollback if
+/// the rename fails after the original was moved aside.
 pub fn replace_directory(target: &Path, new_contents: &Path) -> AppResult<()> {
     let backup = target.with_extension(format!("old_{}", Uuid::new_v4()));
     let target_existed = target.exists();
@@ -33,12 +38,15 @@ pub fn replace_directory(target: &Path, new_contents: &Path) -> AppResult<()> {
     Ok(())
 }
 
+/// Stage the new tree next to `target` then atomically swap it in.
 pub struct TwoPhaseCopy<'a> {
     pub src: &'a Path,
     pub target: &'a Path,
 }
 
 impl<'a> TwoPhaseCopy<'a> {
+    /// Run the copy. On any failure the staged tree is removed and the
+    /// original `target` is left in place.
     pub fn execute(&self) -> AppResult<()> {
         let parent = self.target.parent()
             .ok_or_else(|| AppError::PathMissing(self.target.to_path_buf()))?;

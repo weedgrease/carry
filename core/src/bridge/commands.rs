@@ -1,3 +1,5 @@
+//! Tauri command handlers exposed to the React frontend via IPC.
+
 use crate::archive::list::BackupRecord;
 use crate::archive::manifest::BackupReason;
 use crate::bridge::state::AppState;
@@ -24,6 +26,7 @@ pub async fn list_accounts(state: State<'_, AppState>) -> AppResult<Vec<Account>
     Ok(accounts)
 }
 
+/// View model returned by [`list_games`]: a `GameRef` plus resolved metadata.
 #[derive(Serialize)]
 pub struct GameView {
     #[serde(flatten)]
@@ -31,15 +34,13 @@ pub struct GameView {
     pub name: String,
     pub header_image_url: String,
     pub is_known: bool,
-    /// True iff this entry's metadata hasn't been fetched yet — the
-    /// frontend should render a spinner instead of the placeholder
-    /// glyph and keep polling until it flips false.
+    /// True until the background metadata fetch completes; the frontend
+    /// renders a spinner and keeps polling until this flips false.
     pub is_pending_fetch: bool,
 }
 
-/// Payload of the `game-metadata-updated` event. The frontend merges
-/// this directly into its React Query cache, avoiding an IPC roundtrip
-/// refetch through `list_games`.
+/// Payload emitted on `game-metadata-updated` so the frontend can merge into
+/// its React Query cache without an IPC refetch.
 #[derive(Serialize, Clone)]
 struct MetadataUpdatePayload {
     app_id: u32,
@@ -65,9 +66,8 @@ pub async fn list_games(
     let cache = crate::steam::metadata::load_cache(&cache_path)?;
     let hide_untitled = state.settings.lock().unwrap().hide_untitled_apps;
 
-    // Build the response from whatever's currently in cache. Anything not
-    // in cache is returned as a pending placeholder — the user sees the
-    // tile + spinner immediately while the background task fetches.
+    // Cache misses are returned as pending placeholders so tiles render
+    // immediately while the background task fetches.
     let pending: Vec<u32> = games
         .iter()
         .filter(|g| !cache.contains_key(&g.app_id))
@@ -85,16 +85,15 @@ pub async fn list_games(
                 header_image_url: crate::steam::metadata::header_image_url(g.app_id),
                 is_known: false,
             });
-            // Hide-untitled filter: only suppress confirmed-untitled entries.
-            // Pending entries stay visible so the user doesn't see a tile
-            // appear, then disappear, then maybe come back if the toggle flips.
+            // Pending entries stay visible to avoid tiles flickering in/out
+            // as metadata resolves.
             if hide_untitled && !meta.is_known && !is_pending {
                 return None;
             }
             let display_name = if meta.is_known {
                 meta.name.clone()
             } else if is_pending {
-                String::new() // frontend shows a spinner; name is unused for pending tiles
+                String::new()
             } else {
                 format!("Untitled · ID {}", meta.app_id)
             };
@@ -108,8 +107,6 @@ pub async fn list_games(
         })
         .collect();
 
-    // Spawn (or extend) the background metadata fetcher for any IDs that
-    // aren't already being fetched.
     if !pending.is_empty() {
         let in_progress = state.games_fetch_in_progress.clone();
         let to_fetch: Vec<u32> = {
@@ -125,14 +122,10 @@ pub async fn list_games(
             let cache_path = cache_path.clone();
             let handle = handle.clone();
             tokio::spawn(async move {
-                // Fan out fetches with bounded concurrency. Steam's appdetails
-                // endpoint is documented at 200 req/5min; in practice it
-                // tolerates short bursts well above that. 4 concurrent + a
-                // 250ms post-fetch pace keeps us comfortably below sustained
-                // limits for typical libraries (<40 apps) while letting the
-                // user see names + cover art populate in seconds rather than
-                // minutes. Cache writes and event emits are serialized via
-                // a channel so they can't race.
+                // Steam's appdetails is documented at 200 req/5min but tolerates
+                // short bursts; 4 concurrent + 250ms post-fetch pace keeps us
+                // under sustained limits for typical libraries. Cache writes and
+                // event emits are serialized through the channel.
                 use std::sync::Arc;
                 use tokio::sync::{mpsc, Semaphore};
                 const CONCURRENCY: usize = 4;
@@ -152,7 +145,9 @@ pub async fn list_games(
                         let msg = match result {
                             Ok(Some(meta)) => (id, Some(meta), false),
                             Ok(None) => (id, None, false),
-                            Err(_) => (id, None, true), // transient — caller should retry
+                            // Transient — drop the in-progress flag so a later
+                            // list_games call can retry.
+                            Err(_) => (id, None, true),
                         };
                         let _ = tx.send(msg).await;
                         tokio::time::sleep(std::time::Duration::from_millis(POST_FETCH_DELAY_MS)).await;
@@ -162,8 +157,6 @@ pub async fn list_games(
 
                 while let Some((id, fetched, transient_err)) = rx.recv().await {
                     if transient_err {
-                        // Drop the in-progress flag so a subsequent list_games
-                        // can retry this id.
                         in_progress.lock().unwrap().remove(&id);
                         continue;
                     }
@@ -178,11 +171,8 @@ pub async fn list_games(
                     cache.insert(id, entry.clone());
                     let _ = crate::steam::metadata::save_cache(&cache_path, &cache);
                     in_progress.lock().unwrap().remove(&id);
-                    // Push the full update so the frontend can merge directly
-                    // into the React Query cache. The name is computed here
-                    // (matching the same logic list_games uses) so the UI can
-                    // display it the instant the event arrives — no waiting
-                    // for an IPC refetch roundtrip.
+                    // Display name is computed here (mirroring list_games) so
+                    // the UI can render the instant the event arrives.
                     let payload = MetadataUpdatePayload {
                         app_id: id,
                         name: if entry.is_known {

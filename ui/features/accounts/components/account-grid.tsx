@@ -20,6 +20,10 @@ type MultiProps = CommonProps & {
   onSelect: (steamId64: string) => void;
 };
 
+/**
+ * Grid of {@link AccountCard}s in either single- or multi-select mode. Used
+ * by Transfer (source + targets) and Backups (account picker).
+ */
 export function AccountGrid(props: SingleProps | MultiProps) {
   const { accounts, excludeIds, badges, emptyMessage, mode, onSelect } = props;
   const filtered = accounts.filter((a) => !excludeIds?.has(a.steam_id_64));

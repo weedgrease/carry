@@ -1,9 +1,13 @@
+//! Persistent JSON cache of Steam appdetails responses (game name + cover art).
+
 use crate::error::AppResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+/// Cached metadata for one app. `is_known=false` means appdetails returned no
+/// store entry (typical for internal/private apps).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameMetadata {
     pub app_id: u32,
@@ -15,10 +19,9 @@ pub struct GameMetadata {
 
 fn default_true() -> bool { true }
 
-/// Legacy Steam CDN URL pattern. Steam returns a 1.4kB placeholder for many
-/// newer apps at this path (HTTP 200, not 404 — so a plain <img> can't tell
-/// it failed). We only use this as a fallback for unknown apps and for
-/// detecting / migrating away from cached entries that have it baked in.
+/// Legacy Steam CDN header URL. Returns a 1.4kB placeholder (HTTP 200, not
+/// 404) for many newer apps, so a plain `<img>` can't detect the failure. Used
+/// only as a fallback for unknown apps and for migrating stale cache entries.
 pub fn header_image_url(app_id: u32) -> String {
     format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/header.jpg")
 }
@@ -28,16 +31,17 @@ fn is_legacy_placeholder_url(url: &str) -> bool {
         || url.starts_with("https://cdn.akamai.steamstatic.com/steam/apps/")
 }
 
+/// Load the appdetails cache and migrate stale entries.
+///
+/// Drops `is_known` entries whose URL was built from the legacy CDN template
+/// (older builds did this); they get re-fetched into the proper content-hashed
+/// URL on next `ensure_cached`. Untitled (`is_known=false`) entries are kept
+/// as-is — the UI renders a placeholder for them anyway.
 pub fn load_cache(path: &Path) -> AppResult<HashMap<u32, GameMetadata>> {
     if !path.exists() {
         return Ok(HashMap::new());
     }
     let parsed: HashMap<u32, GameMetadata> = serde_json::from_slice(&std::fs::read(path)?)?;
-    // Migration: drop entries whose header_image_url was constructed from the
-    // legacy CDN template (older builds did this). Those will be re-fetched
-    // by ensure_cached so they pick up the real content-hashed URL from
-    // appdetails. Untitled apps (is_known=false) are kept as-is — their URL
-    // doesn't matter because the GameCard renders a placeholder for them.
     let migrated: HashMap<u32, GameMetadata> = parsed
         .into_iter()
         .filter(|(_, v)| !(v.is_known && is_legacy_placeholder_url(&v.header_image_url)))
@@ -45,6 +49,7 @@ pub fn load_cache(path: &Path) -> AppResult<HashMap<u32, GameMetadata>> {
     Ok(migrated)
 }
 
+/// Persist the appdetails cache as pretty JSON.
 pub fn save_cache(path: &Path, cache: &HashMap<u32, GameMetadata>) -> AppResult<()> {
     if let Some(p) = path.parent() {
         std::fs::create_dir_all(p)?;
@@ -66,15 +71,14 @@ struct AppDetailsResp {
 #[derive(Deserialize)]
 struct AppDetailsData {
     name: String,
-    /// The actual header image URL Steam tells us about. For modern apps this
-    /// is a content-hashed `shared.akamai.steamstatic.com/store_item_assets/…`
-    /// URL with the real cover art. Older apps still resolve to the legacy
-    /// `cdn.*.steamstatic.com/steam/apps/<id>/header.jpg` location. Either
-    /// way we trust what the API returns.
+    // Modern apps return a content-hashed `shared.akamai.steamstatic.com/...`
+    // URL; older apps still resolve to the legacy CDN path. Either is trusted.
     #[serde(default)]
     header_image: String,
 }
 
+/// Fetch a single appdetails entry. Returns `Ok(None)` when Steam reports the
+/// app has no public store entry.
 pub async fn fetch_one(client: &reqwest::Client, app_id: u32) -> AppResult<Option<GameMetadata>> {
     let url = format!(
         "https://store.steampowered.com/api/appdetails?appids={app_id}&filters=basic"
@@ -108,6 +112,8 @@ pub async fn fetch_one(client: &reqwest::Client, app_id: u32) -> AppResult<Optio
     }))
 }
 
+/// Fetch and cache any `app_ids` not already present, paced for the
+/// appdetails rate limit (~200 req/5min).
 pub async fn ensure_cached(
     client: &reqwest::Client,
     cache_path: &PathBuf,
@@ -137,6 +143,7 @@ pub async fn ensure_cached(
             }
             Err(_) => continue,
         }
+        // 1500ms keeps us under appdetails' 200 req/5min budget.
         tokio::time::sleep(Duration::from_millis(1500)).await;
     }
     save_cache(cache_path, cache)?;
@@ -161,7 +168,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = dir.path().join("games.json");
         let mut cache = HashMap::new();
-        // Use a content-hashed URL so the load_cache migration leaves it alone.
+        // Content-hashed URL so the load_cache migration leaves it alone.
         cache.insert(
             570,
             GameMetadata {
@@ -195,9 +202,8 @@ mod tests {
     fn legacy_cache_without_is_known_defaults_to_true() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("games.json");
-        // Write a legacy entry that doesn't include is_known. Use a URL
-        // that's NOT the legacy placeholder pattern so the migration leaves
-        // it intact — this test checks the serde default, not the migration.
+        // URL is not the legacy placeholder pattern, so the migration leaves
+        // it intact — this test isolates the serde default.
         std::fs::write(&path, r#"{"570":{"app_id":570,"name":"Dota 2","header_image_url":"https://example/570.jpg"}}"#).unwrap();
         let loaded = load_cache(&path).unwrap();
         assert!(loaded.get(&570).unwrap().is_known);
@@ -208,21 +214,21 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = dir.path().join("games.json");
         let mut cache = HashMap::new();
-        // Stale: known + legacy URL — should be dropped on load
+        // Stale: known + legacy URL — dropped on load.
         cache.insert(2807960, GameMetadata {
             app_id: 2807960,
             name: "Battlefield 6".into(),
             header_image_url: "https://cdn.cloudflare.steamstatic.com/steam/apps/2807960/header.jpg".into(),
             is_known: true,
         });
-        // Fresh: known + content-hashed URL — should be kept
+        // Fresh: known + content-hashed URL — kept.
         cache.insert(570, GameMetadata {
             app_id: 570,
             name: "Dota 2".into(),
             header_image_url: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/570/abc/header.jpg".into(),
             is_known: true,
         });
-        // Untitled: legacy URL is fine because the placeholder masks it
+        // Untitled: legacy URL is fine because the placeholder masks it.
         cache.insert(7, GameMetadata {
             app_id: 7,
             name: "App 7".into(),

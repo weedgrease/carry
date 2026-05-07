@@ -13,15 +13,15 @@ import { useSettings, useUpdateSettings } from "../api/queries";
 import { api } from "@/lib/tauri-client";
 import { useTheme } from "@/app/providers/theme-provider";
 
+/** Settings page: Steam path override, retention, hide-untitled, theme. */
 export function SettingsPage() {
   const queryClient = useQueryClient();
   const { data: settings } = useSettings();
   const update = useUpdateSettings();
   const { theme, setTheme } = useTheme();
   const [steamPath, setSteamPath] = useState("");
-  // `retention` holds the user-visible "keep last N" number, even when the
-  // pruning toggle is off — so unchecking the toggle restores their last
-  // preferred number. The wire format treats 0 as "never auto-delete".
+  // Holds the user-visible "keep last N" even when the pruning toggle is
+  // off, so unchecking restores their previous number. Wire format: 0 = never.
   const [retention, setRetention] = useState(20);
   const [keepAllBackups, setKeepAllBackups] = useState(false);
   const [hideUntitled, setHideUntitled] = useState(true);
@@ -31,8 +31,8 @@ export function SettingsPage() {
       setSteamPath(settings.steam_path_override ?? "");
       const stored = settings.backup_retention_per_pair;
       setKeepAllBackups(stored === 0);
-      // Don't clobber the input back to 0 when "keep all" was chosen — keep
-      // the existing user-visible value so they can toggle back without losing it.
+      // Preserve the user's preferred number when "keep all" is on, so the
+      // input doesn't reset to 0 visually.
       if (stored !== 0) setRetention(stored);
       setHideUntitled(settings.hide_untitled_apps);
     }

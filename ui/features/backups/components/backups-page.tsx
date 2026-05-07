@@ -10,13 +10,13 @@ import { BackupGameGroup } from "./backup-game-group";
 
 const ALL = "__all__";
 
+/** Backups page: account picker, reason filter, and grouped backup listings. */
 export function BackupsPage() {
   const { data: accounts = [] } = useAccounts();
   const { data: records = [] } = useBackups();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reason, setReason] = useState<BackupReason | typeof ALL>(ALL);
 
-  // Backup-count per account.
   const counts = useMemo(() => {
     const m = new Map<string, number>();
     for (const r of records) {
@@ -34,7 +34,6 @@ export function BackupsPage() {
       .filter((r) => reason === ALL || r.manifest.reason === reason);
   }, [records, selectedId, reason]);
 
-  // Group filtered backups by app_id.
   const groups = useMemo(() => {
     const byApp = new Map<number, typeof filteredForSelected>();
     for (const r of filteredForSelected) {
@@ -57,8 +56,7 @@ export function BackupsPage() {
     ? `${totalForSelected} backup${totalForSelected === 1 ? "" : "s"} across ${groups.length} game${groups.length === 1 ? "" : "s"}`
     : "";
 
-  // Scroll to the backups section when an account is picked so the user
-  // doesn't have to manually scroll past the account grid.
+  // Auto-scroll past the account grid when one is picked.
   const scrollRef = useRef<HTMLDivElement>(null);
   const backupsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {

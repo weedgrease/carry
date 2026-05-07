@@ -2,6 +2,7 @@ import type { Account } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { AvatarImageBlock } from "./avatar-image";
 
+/** Selectable tile rendering an account avatar, display name, and optional badge. */
 export function AccountCard({
   account,
   selected,

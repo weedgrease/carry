@@ -1,7 +1,12 @@
+//! Crate-wide error type. Serializes to `{ code, message }` for the frontend.
+
 use serde::Serialize;
 use std::path::PathBuf;
 use thiserror::Error;
 
+/// Every fallible operation surfaced through the Tauri bridge maps to one of
+/// these variants. The `Serialize` impl exposes `{ code, message }` so the
+/// frontend can branch on `code` without parsing prose.
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("Steam installation not found")]
@@ -59,6 +64,7 @@ impl Serialize for AppError {
     }
 }
 
+/// Shorthand for `Result<T, AppError>`.
 pub type AppResult<T> = Result<T, AppError>;
 
 #[cfg(test)]

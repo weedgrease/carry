@@ -13,18 +13,15 @@ function fmtSize(n: number) {
   return `${v.toFixed(1)} ${u[i]}`;
 }
 
+/** Selectable cover-art tile for one game with size, app id, and pending state. */
 export function GameCard({
   game, selected, onToggle,
 }: { game: GameView; selected: boolean; onToggle: () => void }) {
-  // Some apps have a name from appdetails but no public header.jpg yet
-  // (pre-release / unannounced titles). Track image failure per card so we
-  // can fall through to the same placeholder treatment as untitled apps.
+  // Pre-release / unannounced titles have a name but no public header.jpg.
+  // Falling back per-card matches the untitled placeholder treatment.
   const [imageFailed, setImageFailed] = useState(false);
-  // The browser's HTTP cache often has cover-art bytes from a previous
-  // session. Without this, when metadata arrives the <img> mounts AND its
-  // bytes resolve in the same React commit, so the name and image reveal
-  // together. Mounting at opacity 0 and fading in on `load` (which fires
-  // async even for cached images) makes the name visibly land first.
+  // Mount the <img> at opacity 0 and fade in on `load` so cached bytes don't
+  // reveal name + image in the same React commit — the name visibly lands first.
   const [imageReady, setImageReady] = useState(false);
   useEffect(() => { setImageReady(false); }, [game.header_image_url]);
   const showImage = game.is_known && !imageFailed;

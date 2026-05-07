@@ -1,3 +1,5 @@
+//! Discover and read backup zips from the on-disk archive tree.
+
 use crate::archive::manifest::{Manifest, MANIFEST_FILENAME};
 use crate::error::AppResult;
 use serde::Serialize;
@@ -5,6 +7,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+/// A single backup zip together with its parsed manifest.
 #[derive(Debug, Clone, Serialize)]
 pub struct BackupRecord {
     pub archive_path: PathBuf,
@@ -12,6 +15,7 @@ pub struct BackupRecord {
     pub manifest: Manifest,
 }
 
+/// Open `archive` and parse the embedded `manifest.json`.
 pub fn read_manifest(archive: &Path) -> AppResult<Manifest> {
     let f = File::open(archive)?;
     let mut zip = zip::ZipArchive::new(f)?;
@@ -21,6 +25,7 @@ pub fn read_manifest(archive: &Path) -> AppResult<Manifest> {
     Ok(serde_json::from_str(&s)?)
 }
 
+/// Walk every `<steam_id_64>/<app_id>/*.zip` and return records sorted newest first.
 pub fn list_all(backup_root: &Path) -> AppResult<Vec<BackupRecord>> {
     let mut out = Vec::new();
     if !backup_root.is_dir() { return Ok(out); }
@@ -44,6 +49,7 @@ pub fn list_all(backup_root: &Path) -> AppResult<Vec<BackupRecord>> {
     Ok(out)
 }
 
+/// Backups for one (account, app) pair, sorted newest first.
 pub fn list_for_pair(backup_root: &Path, steam_id_64: &str, app_id: u32) -> AppResult<Vec<BackupRecord>> {
     Ok(list_all(backup_root)?
         .into_iter()
@@ -51,6 +57,7 @@ pub fn list_for_pair(backup_root: &Path, steam_id_64: &str, app_id: u32) -> AppR
         .collect())
 }
 
+/// Remove the zip on disk for `record`.
 pub fn delete(record: &BackupRecord) -> AppResult<()> {
     std::fs::remove_file(&record.archive_path)?;
     Ok(())

@@ -1,6 +1,7 @@
 import type { GameView } from "@/types/domain";
 import { GameCard } from "./game-card";
 
+/** Responsive grid of {@link GameCard}s for an account's games. */
 export function GameGrid({
   games, selected, onToggle,
 }: { games: GameView[]; selected: Set<number>; onToggle: (id: number) => void }) {

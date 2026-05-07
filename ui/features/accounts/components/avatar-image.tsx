@@ -3,6 +3,10 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/tauri-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+/**
+ * Avatar image with a two-letter initials fallback. If no `initialPath` is
+ * provided, fetches and caches the avatar via `ensureAvatar`.
+ */
 export function AvatarImageBlock({
   steamId64,
   initialPath,

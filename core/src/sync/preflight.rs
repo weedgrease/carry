@@ -1,7 +1,10 @@
+//! Pre-transfer checks: Steam process detection, disk-space probing.
+
 use crate::error::{AppError, AppResult};
 use std::path::Path;
 use sysinfo::System;
 
+/// True if a process named `steam`/`steam.exe` is currently running.
 pub fn is_steam_running() -> bool {
     let mut sys = System::new();
     sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
@@ -11,10 +14,13 @@ pub fn is_steam_running() -> bool {
     })
 }
 
+/// Errors with `SteamRunning` if Steam is currently running. Currently unused
+/// in the transfer/restore paths but kept for future soft-warning use.
 pub fn ensure_steam_not_running() -> AppResult<()> {
     if is_steam_running() { Err(AppError::SteamRunning) } else { Ok(()) }
 }
 
+/// Recursive byte size of `p`'s file contents.
 pub fn dir_size(p: &Path) -> u64 {
     let mut total = 0u64;
     for e in walkdir::WalkDir::new(p) {
@@ -27,6 +33,8 @@ pub fn dir_size(p: &Path) -> u64 {
     total
 }
 
+/// Verify the target volume has at least `2 * need_bytes` free (covers the
+/// staged `.tmp_*` copy alongside the existing target during two-phase swap).
 pub fn ensure_disk_space(target_parent: &Path, need_bytes: u64) -> AppResult<()> {
     let available = available_bytes(target_parent)?;
     let required = need_bytes.saturating_mul(2);
@@ -64,6 +72,8 @@ extern "system" {
     ) -> i32;
 }
 
+// Non-Windows fallback: report effectively-infinite free space so the disk
+// check trivially passes during dev. Real check runs on Windows only.
 #[cfg(not(target_os = "windows"))]
 fn available_bytes(_p: &Path) -> AppResult<u64> { Ok(u64::MAX) }
 

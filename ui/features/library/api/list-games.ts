@@ -3,12 +3,13 @@ import { api } from "@/lib/tauri-client";
 
 export const gamesKey = (id32: number) => ["games", id32] as const;
 
-// The `game-metadata-updated` event listener is registered once at app
-// startup in main.tsx (module load) so it can't race the backend's bg
-// fetcher. The listener writes payloads straight into the React Query
-// cache via setQueriesData — no extra IPC roundtrip — which is why names
-// pop in the moment Steam responds, well before the cover-art image
-// finishes downloading.
+/**
+ * React Query subscription for the games list of a Steam account.
+ *
+ * Background metadata updates arrive via the `game-metadata-updated` listener
+ * registered in `main.tsx`, which writes directly into this cache through
+ * `setQueriesData` so names appear without an IPC refetch.
+ */
 export function useGames(steam_id_32: number | null) {
   return useQuery({
     queryKey: gamesKey(steam_id_32 ?? -1),

@@ -6,6 +6,7 @@ import { Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/tauri-client";
 
+/** About page: app version, project links, and a manual update-check button. */
 export function AboutPage() {
   const [version, setVersion] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);

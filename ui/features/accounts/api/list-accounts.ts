@@ -3,6 +3,7 @@ import { api } from "@/lib/tauri-client";
 
 export const accountsQueryKey = ["accounts"] as const;
 
+/** React Query subscription for the discovered Steam accounts. */
 export function useAccounts() {
   return useQuery({ queryKey: accountsQueryKey, queryFn: api.listAccounts });
 }

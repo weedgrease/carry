@@ -1,6 +1,9 @@
+//! Locate and describe a Steam installation on disk.
+
 use crate::error::{AppError, AppResult};
 use std::path::{Path, PathBuf};
 
+/// A validated Steam install rooted at `root`, with helpers for the standard subpaths.
 #[derive(Debug, Clone)]
 pub struct SteamInstall {
     pub root: PathBuf,
@@ -16,6 +19,7 @@ impl SteamInstall {
     }
 }
 
+/// Treat `p` as a Steam root, requiring `userdata/` and `config/` subdirs.
 pub fn validate_steam_root(p: &Path) -> AppResult<SteamInstall> {
     if !p.exists() { return Err(AppError::PathMissing(p.to_path_buf())); }
     let userdata = p.join("userdata");
@@ -26,6 +30,8 @@ pub fn validate_steam_root(p: &Path) -> AppResult<SteamInstall> {
     Ok(SteamInstall { root: p.to_path_buf() })
 }
 
+/// Detect Steam from registry (HKCU then HKLM), falling back to the default
+/// `C:\Program Files (x86)\Steam` path. Returns `SteamNotFound` on non-Windows.
 #[cfg(target_os = "windows")]
 pub fn detect() -> AppResult<SteamInstall> {
     use winreg::enums::*;

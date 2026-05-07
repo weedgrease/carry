@@ -3,6 +3,11 @@ import { toast } from "sonner";
 import { api } from "@/lib/tauri-client";
 
 let checked = false;
+/**
+ * Fire one update check on first mount and toast with an Install action if a
+ * newer version is available. Module-level guard prevents duplicate checks
+ * across StrictMode double-invokes or AppShell remounts.
+ */
 export function useUpdateCheckOnLaunch() {
   useEffect(() => {
     if (checked) return;
@@ -14,6 +19,6 @@ export function useUpdateCheckOnLaunch() {
           duration: 10_000,
         });
       }
-    }).catch(() => { /* silent */ });
+    }).catch(() => {});
   }, []);
 }

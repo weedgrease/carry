@@ -1,15 +1,17 @@
+//! User-editable application settings persisted as JSON in the app data dir.
+
 use crate::error::AppResult;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+/// Persisted user preferences. Defaults: retention 20, hide-untitled on.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Settings {
     pub steam_path_override: Option<PathBuf>,
     pub backup_retention_per_pair: u32,
     pub last_update_check: Option<chrono::DateTime<chrono::Utc>>,
-    /// When true, apps without Steam store metadata (typically internal
-    /// Steam apps) are filtered out of the games list. Defaults to true.
-    /// Serde default keeps older settings.json files working.
+    /// When true, apps without Steam store metadata are filtered out of the
+    /// games list. Serde default keeps older settings.json files working.
     #[serde(default = "default_true")]
     pub hide_untitled_apps: bool,
 }
@@ -27,6 +29,7 @@ impl Default for Settings {
     }
 }
 
+/// Load settings from disk, returning defaults if the file doesn't exist.
 pub fn load(path: &Path) -> AppResult<Settings> {
     if !path.exists() {
         return Ok(Settings::default());
@@ -35,6 +38,7 @@ pub fn load(path: &Path) -> AppResult<Settings> {
     Ok(serde_json::from_slice(&bytes)?)
 }
 
+/// Persist settings as pretty JSON, creating parent dirs as needed.
 pub fn save(path: &Path, settings: &Settings) -> AppResult<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
@@ -74,7 +78,6 @@ mod tests {
     fn legacy_settings_without_hide_untitled_defaults_to_true() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("legacy.json");
-        // A settings file written by an older build that didn't have the field.
         std::fs::write(
             &path,
             r#"{"steam_path_override":null,"backup_retention_per_pair":20,"last_update_check":null}"#,

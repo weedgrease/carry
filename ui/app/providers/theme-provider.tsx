@@ -17,6 +17,10 @@ function resolve(theme: Theme): "light" | "dark" {
   return theme;
 }
 
+/**
+ * Persists the user's theme choice in localStorage and toggles `dark` on
+ * `<html>`. The `system` mode follows `prefers-color-scheme`.
+ */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
@@ -55,6 +59,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Read the active theme. Throws if used outside a {@link ThemeProvider}. */
 export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) throw new Error("useTheme must be used inside ThemeProvider");
