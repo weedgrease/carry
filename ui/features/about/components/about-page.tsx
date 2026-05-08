@@ -1,16 +1,34 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
 import { open } from "@tauri-apps/plugin-shell";
 import { toast } from "sonner";
 import { Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
-import { installUpdateWithProgress } from "@/features/settings/api/install-update";
+import { settingsKey, useSettings } from "@/features/settings/api/queries";
+import { showUpdateAvailableToast } from "@/features/settings/api/show-update-toast";
 import { api, toErrorMessage } from "@/lib/tauri-client";
+
+function formatRelativeTime(iso: string | null): string {
+  if (!iso) return "Never";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "Never";
+  const diffSec = Math.round((Date.now() - then) / 1000);
+  if (diffSec < 60) return "Just now";
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} min${diffMin === 1 ? "" : "s"} ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? "" : "s"} ago`;
+  const diffDay = Math.round(diffHr / 24);
+  return `${diffDay} day${diffDay === 1 ? "" : "s"} ago`;
+}
 
 /** About page: app version, project links, and a manual update-check button. */
 export function AboutPage() {
   const [version, setVersion] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+  const { data: settings } = useSettings();
+  const qc = useQueryClient();
 
   useEffect(() => {
     getVersion().then(setVersion).catch(() => {});
@@ -24,11 +42,9 @@ export function AboutPage() {
     setChecking(true);
     try {
       const info = await api.checkForUpdate();
+      qc.invalidateQueries({ queryKey: settingsKey });
       if (info.available) {
-        toast(`Update v${info.version} available`, {
-          action: { label: "Install", onClick: () => installUpdateWithProgress() },
-          duration: 10_000,
-        });
+        showUpdateAvailableToast(info);
       } else {
         toast.success("You're on the latest version.");
       }
@@ -54,14 +70,19 @@ export function AboutPage() {
               Transfer Steam game configuration files between accounts on the
               same machine, with automatic backups and signed auto-updates.
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={checkForUpdates}
-              disabled={checking}
-            >
-              {checking ? "Checking…" : "Check for updates"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={checkForUpdates}
+                disabled={checking}
+              >
+                {checking ? "Checking…" : "Check for updates"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Last checked: {formatRelativeTime(settings?.last_update_check ?? null)}
+              </p>
+            </div>
           </div>
         </Section>
 

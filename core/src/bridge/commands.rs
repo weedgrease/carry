@@ -394,12 +394,15 @@ pub struct UpdateInfo {
 }
 
 #[tauri::command]
-pub async fn check_for_update(handle: tauri::AppHandle) -> AppResult<UpdateInfo> {
+pub async fn check_for_update(
+    handle: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> AppResult<UpdateInfo> {
     let current_version = handle.package_info().version.to_string();
     let updater = handle
         .updater()
         .map_err(|e| AppError::Updater(format!("init: {e}")))?;
-    match updater.check().await {
+    let result = match updater.check().await {
         Ok(Some(update)) => Ok(UpdateInfo {
             available: true,
             version: Some(update.version.clone()),
@@ -413,7 +416,19 @@ pub async fn check_for_update(handle: tauri::AppHandle) -> AppResult<UpdateInfo>
             notes: None,
         }),
         Err(e) => Err(AppError::Updater(format!("check: {e}"))),
+    };
+
+    if result.is_ok() {
+        let path = state.settings_path();
+        let snapshot = {
+            let mut guard = state.settings.lock().unwrap();
+            guard.last_update_check = Some(chrono::Utc::now());
+            guard.clone()
+        };
+        let _ = crate::settings::save(&path, &snapshot);
     }
+
+    result
 }
 
 /// Progress payload emitted on the `update-progress` event so the frontend

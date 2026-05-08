@@ -1,7 +1,8 @@
 import { useEffect } from "react";
-import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/tauri-client";
-import { installUpdateWithProgress } from "./install-update";
+import { settingsKey } from "./queries";
+import { showUpdateAvailableToast } from "./show-update-toast";
 
 // Module-scoped flags so StrictMode double-invokes and AppShell remounts
 // don't fire duplicate checks. `inflight` blocks while a request is open;
@@ -12,20 +13,19 @@ let succeeded = false;
 
 /** Fire one update check on first mount; toast with an Install action if available. */
 export function useUpdateCheckOnLaunch() {
+  const qc = useQueryClient();
   useEffect(() => {
     if (succeeded || inflight) return;
     inflight = true;
     api.checkForUpdate()
       .then((info) => {
         succeeded = true;
+        qc.invalidateQueries({ queryKey: settingsKey });
         if (info.available) {
-          toast(`Update v${info.version} available`, {
-            action: { label: "Install", onClick: () => installUpdateWithProgress() },
-            duration: 10_000,
-          });
+          showUpdateAvailableToast(info);
         }
       })
       .catch(() => {})
       .finally(() => { inflight = false; });
-  }, []);
+  }, [qc]);
 }
