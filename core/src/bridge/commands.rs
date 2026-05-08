@@ -416,8 +416,20 @@ pub async fn check_for_update(handle: tauri::AppHandle) -> AppResult<UpdateInfo>
     }
 }
 
+/// Progress payload emitted on the `update-progress` event so the frontend
+/// can drive an in-app status indicator instead of relying on the NSIS UI.
+#[derive(Serialize, Clone)]
+#[serde(tag = "phase", rename_all = "kebab-case")]
+enum UpdateProgress {
+    Progress { downloaded: u64, total: Option<u64> },
+    Finished,
+}
+
 #[tauri::command]
 pub async fn install_update(handle: tauri::AppHandle) -> AppResult<()> {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::Arc;
+
     let updater = handle
         .updater()
         .map_err(|e| AppError::Updater(format!("init: {e}")))?;
@@ -426,8 +438,28 @@ pub async fn install_update(handle: tauri::AppHandle) -> AppResult<()> {
         .await
         .map_err(|e| AppError::Updater(format!("check: {e}")))?
     {
+        let downloaded = Arc::new(AtomicU64::new(0));
+        let dl = downloaded.clone();
+        let h_progress = handle.clone();
+        let h_finish = handle.clone();
+
         update
-            .download_and_install(|_, _| {}, || {})
+            .download_and_install(
+                move |chunk: usize, total: Option<u64>| {
+                    let so_far = dl.fetch_add(chunk as u64, Ordering::Relaxed)
+                        + chunk as u64;
+                    let _ = h_progress.emit(
+                        "update-progress",
+                        UpdateProgress::Progress {
+                            downloaded: so_far,
+                            total,
+                        },
+                    );
+                },
+                move || {
+                    let _ = h_finish.emit("update-progress", UpdateProgress::Finished);
+                },
+            )
             .await
             .map_err(|e| AppError::Updater(format!("install: {e}")))?;
         handle.restart();

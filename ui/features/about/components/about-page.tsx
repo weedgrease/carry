@@ -4,6 +4,7 @@ import { open } from "@tauri-apps/plugin-shell";
 import { toast } from "sonner";
 import { Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
+import { installUpdateWithProgress } from "@/features/settings/api/install-update";
 import { api, toErrorMessage } from "@/lib/tauri-client";
 
 /** About page: app version, project links, and a manual update-check button. */
@@ -25,7 +26,7 @@ export function AboutPage() {
       const info = await api.checkForUpdate();
       if (info.available) {
         toast(`Update v${info.version} available`, {
-          action: { label: "Install", onClick: () => api.installUpdate() },
+          action: { label: "Install", onClick: () => installUpdateWithProgress() },
           duration: 10_000,
         });
       } else {

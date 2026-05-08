@@ -73,3 +73,7 @@ export type UpdateInfo = {
   current_version: string;
   notes: string | null;
 };
+
+export type UpdateProgress =
+  | { phase: "progress"; downloaded: number; total: number | null }
+  | { phase: "finished" };

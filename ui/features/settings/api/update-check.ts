@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/tauri-client";
+import { installUpdateWithProgress } from "./install-update";
 
 // Module-scoped flags so StrictMode double-invokes and AppShell remounts
 // don't fire duplicate checks. `inflight` blocks while a request is open;
@@ -19,7 +20,7 @@ export function useUpdateCheckOnLaunch() {
         succeeded = true;
         if (info.available) {
           toast(`Update v${info.version} available`, {
-            action: { label: "Install", onClick: () => api.installUpdate() },
+            action: { label: "Install", onClick: () => installUpdateWithProgress() },
             duration: 10_000,
           });
         }
