@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router";
+import { Plus } from "lucide-react";
 import type { BackupReason } from "@/types/domain";
 import { Section } from "@/components/layout/section";
+import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -91,16 +94,24 @@ export function BackupsPage() {
           title={`Backups for ${selectedAccount.display_name}`}
           description={description}
           action={
-            <Select value={reason} onValueChange={(v) => setReason(v as BackupReason | typeof ALL)}>
-              <SelectTrigger className="w-44 h-8 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>All types</SelectItem>
-                <SelectItem value="Manual">Manual</SelectItem>
-                <SelectItem value="PreCopy">Pre-Copy</SelectItem>
-                <SelectItem value="PreRestore">Pre-Restore</SelectItem>
-                <SelectItem value="Source">Source</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Button asChild size="sm" variant="outline" className="h-8 text-xs">
+                <Link to={`/backups/new?account=${encodeURIComponent(selectedAccount.steam_id_64)}`}>
+                  <Plus className="size-4" />
+                  New backup
+                </Link>
+              </Button>
+              <Select value={reason} onValueChange={(v) => setReason(v as BackupReason | typeof ALL)}>
+                <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>All types</SelectItem>
+                  <SelectItem value="Manual">Manual</SelectItem>
+                  <SelectItem value="PreCopy">Pre-Copy</SelectItem>
+                  <SelectItem value="PreRestore">Pre-Restore</SelectItem>
+                  <SelectItem value="Source">Source</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           }
         >
           {groups.length === 0 ? (

@@ -6,6 +6,9 @@ import { TransferPage } from "@/features/transfer/components/transfer-page";
 const BackupsPage = lazy(() =>
   import("@/features/backups/components/backups-page").then((m) => ({ default: m.BackupsPage }))
 );
+const CreateBackupPage = lazy(() =>
+  import("@/features/backups/components/create-backup-page").then((m) => ({ default: m.CreateBackupPage }))
+);
 const SettingsPage = lazy(() =>
   import("@/features/settings/components/settings-page").then((m) => ({ default: m.SettingsPage }))
 );
@@ -28,6 +31,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, Component: TransferPage },
       { path: "backups", element: withSuspense(BackupsPage) },
+      { path: "backups/new", element: withSuspense(CreateBackupPage) },
       { path: "settings", element: withSuspense(SettingsPage) },
       { path: "about", element: withSuspense(AboutPage) },
     ],
