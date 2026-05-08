@@ -1,6 +1,6 @@
 [package]
 name = "carry"
-version = "1.1.0"
+version = "1.2.0"
 description = "Transfer Steam game configs between accounts"
 authors = ["Kevin Murphy <kevin.murphy@proof.com>"]
 edition = "2021"
