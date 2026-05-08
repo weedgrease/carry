@@ -41,7 +41,7 @@ export function BackupRowActions({ record }: { record: BackupRecord }) {
           >
             <FolderOpen className="size-4 mr-2" /> Reveal in Explorer
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setConfirmDelete(true)} className="text-destructive">
+          <DropdownMenuItem onClick={() => setConfirmDelete(true)} className="text-destructive dark:text-red-400">
             <Trash2 className="size-4 mr-2" /> Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

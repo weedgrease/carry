@@ -26,13 +26,13 @@ export function TransferResultsDialog({
               <li key={i} className="flex items-start gap-2 text-sm">
                 {r.success
                   ? <Check className="size-4 text-green-600 mt-0.5" />
-                  : <X className="size-4 text-destructive mt-0.5" />}
+                  : <X className="size-4 text-destructive dark:text-red-400 mt-0.5" />}
                 <div>
                   <div>
                     <span className="font-medium">{r.pair.game_name}</span>
                     {" "}→ {r.pair.target_persona}
                   </div>
-                  {!r.success && <div className="text-destructive text-xs">{r.error}</div>}
+                  {!r.success && <div className="text-destructive dark:text-red-400 text-xs">{r.error}</div>}
                 </div>
               </li>
             ))}
