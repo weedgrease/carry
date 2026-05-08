@@ -7,6 +7,18 @@ import type { UpdateProgress } from "@/types/domain";
 // concurrent installs.
 let inFlight = false;
 
+function formatMB(bytes: number): string {
+  return (bytes / 1_048_576).toFixed(1);
+}
+
+function formatProgress(downloaded: number, total: number | null): string {
+  if (total && total > 0) {
+    const pct = Math.floor((downloaded / total) * 100);
+    return `Downloading ${formatMB(downloaded)} / ${formatMB(total)} MB (${pct}%)`;
+  }
+  return `Downloading ${formatMB(downloaded)} MB…`;
+}
+
 /**
  * Trigger `install_update` and surface byte-level download progress through
  * a single sonner toast that updates in place. The Rust side restarts the
@@ -21,14 +33,7 @@ export async function installUpdateWithProgress(): Promise<void> {
   const unlisten = await listen<UpdateProgress>("update-progress", (e) => {
     const p = e.payload;
     if (p.phase === "progress") {
-      const pct =
-        p.total && p.total > 0
-          ? Math.floor((p.downloaded / p.total) * 100)
-          : null;
-      toast.loading(
-        pct !== null ? `Downloading update… ${pct}%` : "Downloading update…",
-        { id: toastId },
-      );
+      toast.loading(formatProgress(p.downloaded, p.total), { id: toastId });
     } else if (p.phase === "finished") {
       toast.loading("Installing… app will restart.", { id: toastId });
     }
